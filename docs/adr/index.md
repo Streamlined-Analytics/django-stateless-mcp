@@ -12,3 +12,5 @@ useful to someone extending the package than the resulting code is.
 |---|---|
 | [ADR-0001](0001-mypy-strict-over-ty.md) | mypy strict is the type-checking gate, not ty |
 | [ADR-0002](0002-docs-on-read-the-docs.md) | Docs are hosted on Read the Docs, with hand-written guides |
+| [ADR-0003](0003-real-dependencies-drop-scaffold.md) | Django 5.2 LTS floor; scaffold CLI deleted; `mcp` deferred |
+| [ADR-0004](0004-pre-commit.md) | pre-commit added, with mypy as a local hook |

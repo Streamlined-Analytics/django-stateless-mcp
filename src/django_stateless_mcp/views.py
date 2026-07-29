@@ -8,10 +8,13 @@ from typing import TYPE_CHECKING, Any
 from django.http import HttpResponse
 from mcp.server.transport_security import TransportSecuritySettings
 
+from django_stateless_mcp.auth import BearerAuthenticator, access_token_context
+
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine, MutableMapping
+    from collections.abc import Callable, Coroutine, MutableMapping, Sequence
 
     from django.http import HttpRequest
+    from mcp.server.auth.provider import TokenVerifier
     from mcp.server.mcpserver import MCPServer
     from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
@@ -77,10 +80,11 @@ class _StatelessBridge:
     is also what statelessness means here -- nothing survives the exchange.
     """
 
-    __slots__ = ("_construction_lock", "_server")
+    __slots__ = ("_authenticator", "_construction_lock", "_server")
 
-    def __init__(self, server: MCPServer) -> None:
+    def __init__(self, server: MCPServer, authenticator: BearerAuthenticator | None) -> None:
         self._server = server
+        self._authenticator = authenticator
         self._construction_lock = threading.Lock()
 
     async def handle(self, request: HttpRequest) -> HttpResponse:
@@ -91,9 +95,16 @@ class _StatelessBridge:
         async def receive() -> MutableMapping[str, Any]:
             return {"type": "http.request", "body": body, "more_body": False}
 
+        scope = self._build_scope(request)
+        if self._authenticator is not None:
+            challenge = await self._authenticator.authenticate(scope)
+            if challenge is not None:
+                return challenge
+
         session_manager = self._new_session_manager()
-        async with session_manager.run():
-            await session_manager.handle_request(self._build_scope(request), receive, response.send)
+        with access_token_context(scope):
+            async with session_manager.run():
+                await session_manager.handle_request(scope, receive, response.send)
         return response.to_django()
 
     def _new_session_manager(self) -> StreamableHTTPSessionManager:
@@ -134,6 +145,9 @@ class _StatelessBridge:
 
 def mcp_view(
     server: MCPServer,
+    *,
+    token_verifier: TokenVerifier | None = None,
+    required_scopes: Sequence[str] = (),
 ) -> Callable[[HttpRequest], Coroutine[Any, Any, HttpResponse]]:
     """Return a Django view serving ``server`` over stateless streamable HTTP.
 
@@ -143,10 +157,17 @@ def mcp_view(
 
         urlpatterns = [path("mcp/", mcp_view(server))]
 
+    Pass a ``token_verifier`` (the SDK's ``TokenVerifier`` protocol) to require
+    OAuth bearer authentication: requests are verified before dispatch, missing
+    or invalid tokens get a 401 with a ``WWW-Authenticate`` challenge, and any
+    ``required_scopes`` the token lacks get a 403. Without a verifier the
+    endpoint is open, and protecting it is the project's responsibility.
+
     The view is asynchronous, so it runs natively under ASGI. Django starts an
     event loop per request under WSGI, so one view serves both deployments.
     """
-    bridge = _StatelessBridge(server)
+    authenticator = BearerAuthenticator(token_verifier, required_scopes) if token_verifier is not None else None
+    bridge = _StatelessBridge(server, authenticator)
 
     async def view(request: HttpRequest) -> HttpResponse:
         return await bridge.handle(request)

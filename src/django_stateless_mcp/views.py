@@ -172,7 +172,16 @@ def mcp_view(
 
     The view is asynchronous, so it runs natively under ASGI. Django starts an
     event loop per request under WSGI, so one view serves both deployments.
+
+    Raises ``ValueError`` if ``user_resolver`` or ``required_scopes`` is given
+    without a ``token_verifier`` -- both are meaningless without authentication,
+    and silently ignoring them would leave the endpoint unexpectedly open.
     """
+    if token_verifier is None and (user_resolver is not None or required_scopes):
+        raise ValueError(
+            "user_resolver and required_scopes require a token_verifier; "
+            "without one the endpoint is unauthenticated and they are ignored."
+        )
     authenticator = (
         BearerAuthenticator(token_verifier, required_scopes, user_resolver) if token_verifier is not None else None
     )

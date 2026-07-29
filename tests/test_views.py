@@ -497,3 +497,21 @@ def test_hidden_tool_still_execution_gated(client):
     )
 
     assert json.loads(response.content)["result"]["isError"] is True
+
+
+def test_user_resolver_without_verifier_is_rejected():
+    """Misconfiguring auth fails loudly rather than leaving the endpoint open."""
+    from django_stateless_mcp import mcp_view
+    from tests.mcp_server import resolve_stub_user, server
+
+    with pytest.raises(ValueError, match="require a token_verifier"):
+        mcp_view(server, user_resolver=resolve_stub_user)
+
+
+def test_required_scopes_without_verifier_is_rejected():
+    """Scopes without a verifier are equally meaningless and rejected."""
+    from django_stateless_mcp import mcp_view
+    from tests.mcp_server import server
+
+    with pytest.raises(ValueError, match="require a token_verifier"):
+        mcp_view(server, required_scopes=["mcp:read"])

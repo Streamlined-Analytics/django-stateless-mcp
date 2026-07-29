@@ -42,14 +42,16 @@ typecheck = [
     "mypy",
 ]
 docs = [
-    "zensical",
+    # MkDocs 2.0 breaks all plugins and themes, no migration path. See ADR-0002.
+    "mkdocs<2",
+    "mkdocs-material",
     "mkdocstrings-python",
 ]
 
 [project.urls]
 bugs = "https://github.com/Streamlined-Analytics/django-stateless-mcp/issues"
 changelog = "https://github.com/Streamlined-Analytics/django-stateless-mcp/releases"
-documentation = "https://Streamlined-Analytics.github.io/django-stateless-mcp/"
+documentation = "https://django-stateless-mcp.readthedocs.io/"
 homepage = "https://github.com/Streamlined-Analytics/django-stateless-mcp"
 
 [project.scripts]
@@ -66,8 +68,7 @@ enable_error_code = [
     "truthy-bool",
 ]
 
-# Tests exercise the public API the way a consumer would; annotating every test
-# adds noise without adding safety.
+# Annotating every test adds noise without adding safety.
 [[tool.mypy.overrides]]
 module = "tests.*"
 allow_untyped_defs = true
@@ -111,7 +112,6 @@ testpaths = ["tests"]
 [tool.uv]
 package = true
 default-groups = ["dev"]
-# Relative exclude-newer durations ("1 week") were added in uv 0.9.17; an
-# older uv cannot parse the value below and would fail confusingly.
+# uv 0.9.17 is the first that parses a relative exclude-newer duration.
 required-version = ">=0.9.17"
 exclude-newer = "1 week"

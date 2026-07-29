@@ -1,0 +1,14 @@
+# Decision records
+
+Architecture Decision Records capture *why* the project is the way it is: the
+problem, what was tried, what failed, and what was chosen. They are written when
+the decision is made and are not rewritten afterwards — a superseded decision
+gets a new record rather than an edit.
+
+They are published rather than kept internal because the reasoning is often more
+useful to someone extending the package than the resulting code is.
+
+| ADR | Decision |
+|---|---|
+| [ADR-0001](0001-mypy-strict-over-ty.md) | mypy strict is the type-checking gate, not ty |
+| [ADR-0002](0002-docs-on-read-the-docs.md) | Docs are hosted on Read the Docs, with hand-written guides |

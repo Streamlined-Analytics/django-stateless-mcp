@@ -118,7 +118,7 @@ def test_autodiscovery_imported_the_app_mcp_module(client):
     response = post(client, "tools/list")
 
     tools = {tool["name"] for tool in json.loads(response.content)["result"]["tools"]}
-    assert tools == {"add", "multiply"}
+    assert {"add", "multiply"} <= tools
 
 
 def test_autodiscovered_tool_is_callable(client):
@@ -143,3 +143,38 @@ def test_broken_app_mcp_module_raises_at_startup(settings):
             apps.set_installed_apps([*settings.INSTALLED_APPS, "tests.broken_mcp_app"])
     finally:
         apps.unset_installed_apps()
+
+
+def test_tool_reads_the_django_request(client):
+    """A tool sees the actual Django request via django_request(ctx)."""
+    response = post(client, "tools/call", {"name": "request_path", "arguments": {}})
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": "/mcp/"}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_sync_tool_uses_the_orm(client):
+    """ORM access works inside a sync tool.
+
+    transaction=True commits the fixture user, because the tool's query runs
+    on a different connection: the SDK executes sync tools in a worker
+    thread, and an uncommitted row would be invisible to it.
+    """
+    from django.contrib.auth.models import User
+
+    User.objects.create_user("mcp-test-user")
+    response = post(client, "tools/call", {"name": "count_users", "arguments": {}})
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": 1}
+
+
+def test_django_request_outside_the_view_raises():
+    """Calling the accessor off the request path fails loudly, not with None."""
+    from mcp.server.mcpserver import Context
+
+    from django_stateless_mcp import django_request
+
+    with pytest.raises(LookupError):
+        django_request(Context())

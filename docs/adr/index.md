@@ -19,3 +19,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0007](0007-stateless-view-bridge.md) | `mcp_view(server)` bridges Django to the SDK, one session manager per request |
 | [ADR-0008](0008-conformance-suite.md) | The official MCP conformance suite runs in CI against a bootable fixture |
 | [ADR-0009](0009-mcp-autodiscovery.md) | Installed apps contribute tools via autodiscovered `mcp.py` modules |
+| [ADR-0010](0010-request-context.md) | The Django request rides the transport scope; sync tools thread via the SDK |

@@ -127,7 +127,8 @@ class _StatelessBridge:
             ],
             "client": (request.META.get("REMOTE_ADDR", ""), 0),
             "server": (request.META.get("SERVER_NAME", ""), _port(request)),
-            "state": {},
+            # The transport carries this to django_request(); no global state.
+            "state": {"django_request": request},
         }
 
 

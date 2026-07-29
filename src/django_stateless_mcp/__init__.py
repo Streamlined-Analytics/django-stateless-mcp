@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django_stateless_mcp.context import django_request as django_request
 from django_stateless_mcp.views import mcp_view as mcp_view
 
-__all__ = ["mcp_view"]
+__all__ = ["django_request", "mcp_view"]

@@ -93,3 +93,47 @@ apps can contribute tools without the URLconf knowing about them.
 
 Apps without an `mcp.py` are skipped. An `mcp.py` that fails to import raises
 at startup rather than being silently ignored.
+
+## Reaching the Django request from a tool
+
+Declare the SDK's `Context` parameter and pass it to `django_request()`:
+
+```python
+from mcp.server.mcpserver import Context
+
+from django_stateless_mcp import django_request
+
+
+@server.tool()
+def whoami(ctx: Context) -> str:
+    """Name the user making this MCP call."""
+    return django_request(ctx).user.get_username()
+```
+
+The request is the real `HttpRequest` for the call — headers, `user`, and
+anything your middleware attached — carried on the transport scope rather than
+in any global.
+Off the request path (for example calling a tool directly in a unit test) it
+raises `LookupError` instead of returning `None`.
+
+## Sync tools and the ORM
+
+Plain `def` tools are run by the SDK in a worker thread, off the event loop, so
+ORM access inside them just works — no `sync_to_async` needed:
+
+```python
+@server.tool()
+def open_orders(ctx: Context) -> int:
+    """Count open orders for the calling user."""
+    user = django_request(ctx).user
+    return Order.objects.filter(owner=user, closed=False).count()
+```
+
+`async def` tools run on the event loop, where the ORM raises
+`SynchronousOnlyOperation`; wrap ORM work in `asgiref.sync.sync_to_async`
+there, or keep database tools synchronous.
+
+When testing tools that write and read the database, remember the tool's query
+runs on a different connection than the test — use
+`pytest.mark.django_db(transaction=True)` so fixture rows are committed and
+visible to it.

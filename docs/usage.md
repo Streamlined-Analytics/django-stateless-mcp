@@ -61,3 +61,35 @@ Host checking is left to Django's `ALLOWED_HOSTS`. The SDK's own DNS-rebinding
 protection is disabled deliberately, so that host policy has a single home in
 your project settings rather than two. See
 [ADR-0007](adr/0007-stateless-view-bridge.md).
+
+## Registering tools from your apps
+
+Add `django_stateless_mcp` to `INSTALLED_APPS` and each installed app's
+`mcp.py` module is imported at startup — the same convention as `admin.py`:
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    # ...
+    "django_stateless_mcp",
+]
+```
+
+```python
+# myapp/mcp.py
+from project.mcp import server
+
+
+@server.tool()
+def lookup_order(order_id: int) -> str:
+    """Return the status of an order."""
+    ...
+```
+
+Registration itself is the SDK's own API — `@server.tool()`,
+`@server.resource()`, `@server.prompt()` — imported against whichever server
+your project defines. Autodiscovery only guarantees the module is imported, so
+apps can contribute tools without the URLconf knowing about them.
+
+Apps without an `mcp.py` are skipped. An `mcp.py` that fails to import raises
+at startup rather than being silently ignored.

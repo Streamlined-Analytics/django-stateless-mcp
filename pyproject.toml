@@ -1,117 +1,117 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+requires = [ "hatchling" ]
 
 [project]
 name = "django-stateless-mcp"
 version = "0.1.0"
 description = "Stateless Model Context Protocol (MCP) server for Django, built on the 2026-07-28 spec."
 readme = "README.md"
-authors = [
-  {name = "Ben Atkinson", email = "ben@streamlinedanalytics.co.uk"}
-]
-maintainers = [
-  {name = "Ben Atkinson", email = "ben@streamlinedanalytics.co.uk"}
-]
+license = { text = "MIT" }
+maintainers = [ { name = "Ben Atkinson", email = "ben@streamlinedanalytics.co.uk" } ]
+authors = [ { name = "Ben Atkinson", email = "ben@streamlinedanalytics.co.uk" } ]
+requires-python = ">=3.12"
 classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Typing :: Typed",
+  "Development Status :: 3 - Alpha",
+  "Environment :: Web Environment",
+  "Framework :: Django",
+  "Framework :: Django :: 5.2",
+  "Framework :: Django :: 6.0",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
 ]
-license = {text = "MIT"}
+# mcp>=2,<3 lands with the first code that imports it. See ADR-0003.
 dependencies = [
-  "typer",
-  "rich",
+  "django>=5.2",
 ]
-requires-python = ">= 3.12"
+urls.bugs = "https://github.com/Streamlined-Analytics/django-stateless-mcp/issues"
+urls.changelog = "https://github.com/Streamlined-Analytics/django-stateless-mcp/releases"
+urls.documentation = "https://django-stateless-mcp.readthedocs.io/"
+urls.homepage = "https://github.com/Streamlined-Analytics/django-stateless-mcp"
 
 [dependency-groups]
 dev = [
-    { include-group = "lint" },
-    { include-group = "test" },
-    { include-group = "typecheck" },
-]
-lint = [
-    "ruff",
+  { include-group = "lint" },
+  { include-group = "test" },
+  { include-group = "typecheck" },
 ]
 test = [
-    "coverage",
-    "pytest",
-]
-typecheck = [
-    "mypy",
+  "coverage",
+  "pytest",
 ]
 docs = [
-    # MkDocs 2.0 breaks all plugins and themes, no migration path. See ADR-0002.
-    "mkdocs<2",
-    "mkdocs-material",
-    "mkdocstrings-python",
+  # MkDocs 2.0 breaks all plugins and themes, no migration path. See ADR-0002.
+  "mkdocs<2",
+  "mkdocs-material",
+  "mkdocstrings-python",
+]
+lint = [
+  "pre-commit",
+  "ruff",
+]
+typecheck = [
+  "mypy",
 ]
 
-[project.urls]
-bugs = "https://github.com/Streamlined-Analytics/django-stateless-mcp/issues"
-changelog = "https://github.com/Streamlined-Analytics/django-stateless-mcp/releases"
-documentation = "https://django-stateless-mcp.readthedocs.io/"
-homepage = "https://github.com/Streamlined-Analytics/django-stateless-mcp"
+[tool.uv]
+# uv 0.9.17 is the first that parses a relative exclude-newer duration.
+required-version = ">=0.9.17"
+default-groups = [ "dev" ]
+exclude-newer = "1 week"
+package = true
 
-[project.scripts]
-django_stateless_mcp = "django_stateless_mcp.cli:app"
+[tool.ruff]
+line-length = 120
+lint.select = [
+  "B",  # flake8-bugbear
+  "E",  # pycodestyle errors
+  "F",  # Pyflakes
+  "I",  # isort
+  "UP", # pyupgrade
+  "W",  # pycodestyle warnings
+]
+
+[tool.pyproject-fmt]
+max_supported_python = "3.14"
 
 [tool.mypy]
 mypy_path = "src/"
 namespace_packages = false
-strict = true
 warn_unreachable = true
 enable_error_code = [
-    "ignore-without-code",
-    "redundant-expr",
-    "truthy-bool",
+  "ignore-without-code",
+  "redundant-expr",
+  "truthy-bool",
+]
+strict = true
+overrides = [
+  # Annotating every test adds noise without adding safety.
+  { module = "tests.*", allow_untyped_defs = true },
 ]
 
-# Annotating every test adds noise without adding safety.
-[[tool.mypy.overrides]]
-module = "tests.*"
-allow_untyped_defs = true
+[tool.pytest]
+ini_options.testpaths = [ "tests" ]
 
-[tool.ruff]
-line-length = 120
-
-[tool.ruff.lint]
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # Pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
+[tool.coverage]
+run.branch = true
+run.parallel = true
+run.source = [ "src/", "tests/" ]
+report.exclude_also = [
+  "@(abc\\.)?abstractmethod",
+  "@overload",
+  "@typing.overload",
+  "\\.\\.\\.",
+  "class .*\\bProtocol\\):",
+  "if TYPE_CHECKING:",
+  "if typing.TYPE_CHECKING:",
+  "raise NotImplementedError",
 ]
-
-[tool.coverage.run]
-branch = true
-parallel = true
-source = ["src/", "tests/"]
-
-[tool.coverage.report]
-show_missing = true
-skip_covered = true
-fail_under = 50
-exclude_also = [
-    "if TYPE_CHECKING:",
-    "if typing.TYPE_CHECKING:",
-    "@overload",
-    "@typing.overload",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-    "raise NotImplementedError",
-    "\\.\\.\\.",
-]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
-[tool.uv]
-package = true
-default-groups = ["dev"]
-# uv 0.9.17 is the first that parses a relative exclude-newer duration.
-required-version = ">=0.9.17"
-exclude-newer = "1 week"
+report.fail_under = 50
+report.show_missing = true
+report.skip_covered = true

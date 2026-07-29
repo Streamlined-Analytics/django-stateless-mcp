@@ -39,7 +39,7 @@ test = [
     "pytest",
 ]
 typecheck = [
-    "ty",
+    "mypy",
 ]
 docs = [
     "zensical",
@@ -55,10 +55,22 @@ homepage = "https://github.com/Streamlined-Analytics/django-stateless-mcp"
 [project.scripts]
 django_stateless_mcp = "django_stateless_mcp.cli:app"
 
-[tool.ty]
-# All rules are enabled as "error" by default; no need to specify unless overriding.
-# Example override: relax a rule for the entire project (uncomment if needed).
-# rules.TY015 = "warn"  # For invalid-argument-type, warn instead of error.
+[tool.mypy]
+mypy_path = "src/"
+namespace_packages = false
+strict = true
+warn_unreachable = true
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "truthy-bool",
+]
+
+# Tests exercise the public API the way a consumer would; annotating every test
+# adds noise without adding safety.
+[[tool.mypy.overrides]]
+module = "tests.*"
+allow_untyped_defs = true
 
 [tool.ruff]
 line-length = 120

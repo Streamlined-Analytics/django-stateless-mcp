@@ -4,5 +4,5 @@ import django_stateless_mcp
 
 
 def test_import():
-    """Verify the package can be imported."""
-    assert django_stateless_mcp
+    """The package imports under its distribution name."""
+    assert django_stateless_mcp.__name__ == "django_stateless_mcp"

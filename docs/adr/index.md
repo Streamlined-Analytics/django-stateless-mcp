@@ -20,3 +20,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0008](0008-conformance-suite.md) | The official MCP conformance suite runs in CI against a bootable fixture |
 | [ADR-0009](0009-mcp-autodiscovery.md) | Installed apps contribute tools via autodiscovered `mcp.py` modules |
 | [ADR-0010](0010-request-context.md) | The Django request rides the transport scope; sync tools thread via the SDK |
+| [ADR-0011](0011-bearer-auth.md) | Bearer auth enforced in the view via the SDK's TokenVerifier protocol |

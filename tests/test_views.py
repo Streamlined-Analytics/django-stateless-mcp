@@ -178,3 +178,61 @@ def test_django_request_outside_the_view_raises():
 
     with pytest.raises(LookupError):
         django_request(Context())
+
+
+AUTH_URL = "/auth-mcp/"
+
+
+def post_auth(client: Client, url: str, token: str | None = None) -> Any:
+    """POST a tools/call for token_client with an optional bearer token."""
+    headers = dict(MCP_HEADERS)
+    if token is not None:
+        headers["authorization"] = f"Bearer {token}"
+    return client.post(
+        url,
+        data=request_body("tools/call", {"name": "token_client", "arguments": {}}),
+        content_type="application/json",
+        headers=headers,
+    )
+
+
+def test_missing_token_gets_401_with_challenge(client):
+    """No bearer token means 401 and a WWW-Authenticate challenge."""
+    response = post_auth(client, AUTH_URL)
+
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"].startswith("Bearer ")
+    assert json.loads(response.content)["error"] == "invalid_token"
+
+
+def test_invalid_token_gets_401(client):
+    """A token the verifier rejects is refused before dispatch."""
+    response = post_auth(client, AUTH_URL, token="wrong")
+
+    assert response.status_code == 401
+
+
+def test_valid_token_reaches_the_tool(client):
+    """A verified token dispatches, and the SDK's get_access_token sees it."""
+    response = post_auth(client, AUTH_URL, token="good-token")
+
+    assert response.status_code == 200
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": "test-client"}
+
+
+def test_missing_scope_gets_403(client):
+    """A valid token without a required scope is refused with 403."""
+    response = post_auth(client, "/admin-mcp/", token="good-token")
+
+    assert response.status_code == 403
+    assert json.loads(response.content)["error"] == "insufficient_scope"
+
+
+def test_unauthenticated_endpoint_stays_open(client):
+    """The verifier-less endpoint still serves without credentials."""
+    response = post_auth(client, MCP_URL)
+
+    assert response.status_code == 200
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": "anonymous"}

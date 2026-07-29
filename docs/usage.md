@@ -137,3 +137,33 @@ When testing tools that write and read the database, remember the tool's query
 runs on a different connection than the test — use
 `pytest.mark.django_db(transaction=True)` so fixture rows are committed and
 visible to it.
+
+## Requiring bearer authentication
+
+Pass the SDK's `TokenVerifier` protocol to `mcp_view()` and the endpoint
+requires OAuth bearer tokens:
+
+```python
+from myproject.auth import MyTokenVerifier
+
+urlpatterns = [
+    path(
+        "mcp/",
+        mcp_view(
+            server,
+            token_verifier=MyTokenVerifier(),
+            required_scopes=["mcp:read"],
+        ),
+    ),
+]
+```
+
+Every request is verified before dispatch — per-request verification is what a
+stateless protocol wants.
+Missing or invalid tokens get a `401` with a `WWW-Authenticate: Bearer`
+challenge; a valid token lacking a required scope gets a `403`.
+Inside tools, the SDK's own `get_access_token()` returns the verified token.
+
+Without a `token_verifier` the endpoint is open, and protecting it is your
+project's responsibility — session auth behind `login_required`, a private
+network, or whatever the deployment calls for.

@@ -5,7 +5,14 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-import structlog
+try:
+    import structlog
+except ImportError as error:
+    message = (
+        "StructlogRequestLogger requires structlog, which is an optional"
+        " dependency: install django-stateless-mcp[structlog]."
+    )
+    raise ImportError(message) from error
 
 if TYPE_CHECKING:
     from mcp.server.context import CallNext, HandlerResult, ServerRequestContext

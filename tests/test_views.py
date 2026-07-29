@@ -127,3 +127,19 @@ def test_autodiscovered_tool_is_callable(client):
 
     result = json.loads(response.content)["result"]
     assert result["structuredContent"] == {"result": 42}
+
+
+def test_broken_app_mcp_module_raises_at_startup(settings):
+    """A failing mcp.py aborts startup instead of being silently skipped.
+
+    The import error inside the module is a ModuleNotFoundError — the same
+    class autodiscovery suppresses for apps with no mcp module at all — so
+    this pins the sharp edge of the guarantee: only absence is forgiven.
+    """
+    from django.apps import apps
+
+    try:
+        with pytest.raises(ModuleNotFoundError, match="does_not_exist_xyz"):
+            apps.set_installed_apps([*settings.INSTALLED_APPS, "tests.broken_mcp_app"])
+    finally:
+        apps.unset_installed_apps()

@@ -41,7 +41,7 @@ def test_tools_list_returns_registered_tool(client):
 
     assert response.status_code == 200
     tools = json.loads(response.content)["result"]["tools"]
-    assert [tool["name"] for tool in tools] == ["add"]
+    assert "add" in {tool["name"] for tool in tools}
 
 
 def test_tools_call_executes_the_tool(client):
@@ -107,3 +107,39 @@ async def test_consecutive_requests_share_no_state(async_client):
 
     assert json.loads(first.content)["result"]["structuredContent"] == {"result": 2}
     assert json.loads(second.content)["result"]["tools"][0]["name"] == "add"
+
+
+def test_autodiscovery_imported_the_app_mcp_module(client):
+    """Tools registered in an app's mcp.py are served without explicit import.
+
+    Nothing in the test suite or URLconf imports tests.mcp, so multiply can
+    only be present if the app config's autodiscovery imported it.
+    """
+    response = post(client, "tools/list")
+
+    tools = {tool["name"] for tool in json.loads(response.content)["result"]["tools"]}
+    assert tools == {"add", "multiply"}
+
+
+def test_autodiscovered_tool_is_callable(client):
+    """An autodiscovered tool executes like any directly registered one."""
+    response = post(client, "tools/call", {"name": "multiply", "arguments": {"a": 6, "b": 7}})
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": 42}
+
+
+def test_broken_app_mcp_module_raises_at_startup(settings):
+    """A failing mcp.py aborts startup instead of being silently skipped.
+
+    The import error inside the module is a ModuleNotFoundError — the same
+    class autodiscovery suppresses for apps with no mcp module at all — so
+    this pins the sharp edge of the guarantee: only absence is forgiven.
+    """
+    from django.apps import apps
+
+    try:
+        with pytest.raises(ModuleNotFoundError, match="does_not_exist_xyz"):
+            apps.set_installed_apps([*settings.INSTALLED_APPS, "tests.broken_mcp_app"])
+    finally:
+        apps.unset_installed_apps()

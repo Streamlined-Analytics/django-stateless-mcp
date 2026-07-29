@@ -24,6 +24,8 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django_stateless_mcp",
+    # An installed app with an mcp.py, so autodiscovery has something to find.
+    "tests",
 ]
 
 USE_TZ = True

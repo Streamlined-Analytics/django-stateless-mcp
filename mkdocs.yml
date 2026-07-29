@@ -56,3 +56,4 @@ nav:
       - ADR-0006 — Test matrix: adr/0006-test-matrix.md
       - ADR-0007 — The view bridge: adr/0007-stateless-view-bridge.md
       - ADR-0008 — Conformance suite: adr/0008-conformance-suite.md
+      - ADR-0009 — mcp.py autodiscovery: adr/0009-mcp-autodiscovery.md

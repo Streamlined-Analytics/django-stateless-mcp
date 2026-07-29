@@ -7,9 +7,22 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 from mcp.server.mcpserver import Context, MCPServer
 
-from django_stateless_mcp import django_request
+from django_stateless_mcp import django_request, request_state_security
 
-server = MCPServer(name="test-server", version="0.0.1")
+server = MCPServer(
+    name="test-server",
+    version="0.0.1",
+    request_state_security=request_state_security(),
+)
+
+# A second, independent instance modelling another worker in a fleet. Same
+# name deliberately: request-state audience binding is by server name, which
+# identical replicas share.
+server_b = MCPServer(
+    name="test-server",
+    version="0.0.1",
+    request_state_security=request_state_security(),
+)
 
 
 @server.tool()

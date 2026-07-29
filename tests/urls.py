@@ -1,11 +1,12 @@
-"""URLconf fixture for the test suite.
-
-The MCP endpoint mounts here once the view exists. Kept deliberately empty
-rather than stubbed, so nothing here can be mistaken for package API.
-"""
+"""URLconf fixture for the test suite."""
 
 from __future__ import annotations
 
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, path
 
-urlpatterns: list[URLPattern | URLResolver] = []
+from django_stateless_mcp import mcp_view
+from tests.mcp_server import server
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("mcp/", mcp_view(server)),
+]

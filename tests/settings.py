@@ -8,6 +8,8 @@ from __future__ import annotations
 
 SECRET_KEY = "NOTASECRET"
 
+ALLOWED_HOSTS = ["testserver"]
+
 # The transport is stateless and stores nothing, so an in-memory DB is enough.
 DATABASES = {
     "default": {

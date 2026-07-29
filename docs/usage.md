@@ -1,27 +1,63 @@
 # Usage
 
-!!! warning "Not yet available"
+Build an `MCPServer` as you normally would with the MCP SDK, then mount it with
+`mcp_view()`:
 
-    The public API is not published. This page documents *intent* so the design
-    can be reviewed before it is built; it is not yet a working example, and the
-    names below will change.
+```python
+# myapp/mcp.py
+from mcp.server.mcpserver import MCPServer
 
-The package is designed around one idea: an MCP endpoint is a Django view, so it
-mounts in `urls.py` like anything else and runs on your existing web fleet under
-either WSGI or ASGI.
+server = MCPServer(name="my-server", version="1.0.0")
 
-Two things follow from that, and they are the reason to read
-[Why stateless](why-stateless.md) first:
 
-- **A tool that needs input from the user returns a result saying so**, rather
-  than holding a connection open and blocking. The client re-issues the call
-  with the answers, and any worker can serve that retry.
-- **Nothing is remembered between requests.** State travels in the request or
-  lives in the database.
+@server.tool()
+def add(a: int, b: int) -> int:
+    """Add two integers."""
+    return a + b
+```
 
-When the API lands, this page will carry a worked elicitation example that runs
-across two separate requests against two different workers — the case the old
-protocol could not express, and the one this package exists to make ordinary.
+```python
+# urls.py
+from django.urls import path
 
-Until then, [Why stateless](why-stateless.md) is the useful page, and the
-[decision records](adr/index.md) cover the choices made so far.
+from django_stateless_mcp import mcp_view
+from myapp.mcp import server
+
+urlpatterns = [
+    path("mcp/", mcp_view(server)),
+]
+```
+
+That is the whole integration. The endpoint is an ordinary Django view: it needs
+no session store, no sticky routing, and no dedicated process.
+
+## What you get
+
+Clients call the endpoint directly — **there is no `initialize` handshake**, so a
+single request is a complete exchange:
+
+```console
+$ curl -sX POST http://localhost:8000/mcp/ \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json, text/event-stream' \
+    -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+         "params":{"name":"add","arguments":{"a":2,"b":3}}}'
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"text":"5","type":"text"}],
+ "isError":false,"structuredContent":{"result":5}}}
+```
+
+Responses carry no session identifier, which is what lets any worker serve any
+request. See [Why stateless](why-stateless.md) for why that matters.
+
+## WSGI and ASGI
+
+The view is asynchronous, so it runs natively under ASGI. Under WSGI, Django
+starts an event loop per request to run it — the same view serves both, with no
+configuration.
+
+## Host validation
+
+Host checking is left to Django's `ALLOWED_HOSTS`. The SDK's own DNS-rebinding
+protection is disabled deliberately, so that host policy has a single home in
+your project settings rather than two. See
+[ADR-0007](adr/0007-stateless-view-bridge.md).

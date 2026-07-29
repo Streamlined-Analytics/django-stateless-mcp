@@ -340,3 +340,42 @@ def test_tampered_request_state_is_rejected(client):
     )
 
     assert payload["error"]["data"]["reason"] == "invalid_request_state"
+
+
+def test_dispatch_logs_a_completed_event(client):
+    """A tool call emits mcp.request.completed with queryable kwargs."""
+    from structlog.testing import capture_logs
+
+    with capture_logs() as captured:
+        post(client, "tools/call", {"name": "add", "arguments": {"a": 1, "b": 2}})
+
+    events = [e for e in captured if e["event"] == "mcp.request.completed"]
+    assert events, captured
+    event = events[0]
+    assert event["method"] == "tools/call"
+    assert event["tool_name"] == "add"
+    assert isinstance(event["duration_ms"], float)
+    assert event["exit"] == "completed"
+
+
+def test_elicitation_pause_logs_input_required_exit(client):
+    """An elicitation pause is distinguishable from completion in the logs."""
+    from structlog.testing import capture_logs
+
+    with capture_logs() as captured:
+        post_stateless(client, MCP_URL, ELICIT_TOOL, {"arguments": {}})
+
+    events = [e for e in captured if e["event"] == "mcp.request.completed"]
+    assert events and events[0]["exit"] == "input_required"
+
+
+def test_failed_dispatch_logs_and_reraises(client):
+    """A protocol failure logs mcp.request.failed and still reaches the wire."""
+    from structlog.testing import capture_logs
+
+    with capture_logs() as captured:
+        response = post_stateless(client, MCP_URL, "test_missing_capability", {"arguments": {}})
+
+    assert "error" in response
+    events = [e for e in captured if e["event"] == "mcp.request.failed"]
+    assert events and events[0]["error_type"] == "MCPError"

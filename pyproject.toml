@@ -30,6 +30,9 @@ dependencies = [
   "django>=5.2",
   "mcp>=2,<3",
 ]
+optional-dependencies.structlog = [
+  "structlog",
+]
 urls.bugs = "https://github.com/Streamlined-Analytics/django-stateless-mcp/issues"
 urls.changelog = "https://github.com/Streamlined-Analytics/django-stateless-mcp/releases"
 urls.documentation = "https://django-stateless-mcp.readthedocs.io/"
@@ -45,6 +48,7 @@ test = [
   "coverage",
   "pytest",
   "pytest-django",
+  "structlog",
 ]
 docs = [
   # MkDocs 2.0 breaks all plugins and themes, no migration path. See ADR-0002.

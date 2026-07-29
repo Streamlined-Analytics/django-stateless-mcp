@@ -198,3 +198,60 @@ sharing your settings can resume any elicitation.
 covers in-flight elicitations too.
 A tampered or expired `requestState` is rejected with a protocol error —
 never accepted, never a crash.
+
+## Structured request logging
+
+Install the optional extra and register the middleware:
+
+```sh
+uv add "django-stateless-mcp[structlog]"
+```
+
+```python
+from django_stateless_mcp import StructlogRequestLogger
+
+server = MCPServer(
+    name="my-server",
+    middleware=[StructlogRequestLogger()],
+)
+```
+
+Every request logs one event with queryable kwargs — `method`, `tool_name`,
+`request_id`, `duration_ms`, and `exit`:
+
+```
+mcp.request.completed  method=tools/call tool_name=add duration_ms=3.1 exit=completed
+mcp.request.completed  method=tools/call tool_name=confirm_order exit=input_required
+mcp.request.failed     method=tools/call error_type=MCPError
+```
+
+An elicitation pause (`exit="input_required"`) is distinguishable from a
+finished call, so multi-round flows can be reconstructed from logs.
+Failures log at `warning` and **re-raise** — errors stay owned by the SDK's
+protocol handling and your error tracker.
+
+## Logging tool dispatch
+
+Add the middleware to log one structured event per request:
+
+```python
+from django_stateless_mcp import StructlogRequestLogger
+
+server = MCPServer(
+    name="my-server",
+    middleware=[StructlogRequestLogger()],
+)
+```
+
+Each request logs `mcp.request.completed` at `info` — with `method`,
+`tool_name`, `request_id`, `duration_ms`, and `exit` (`"completed"` or
+`"input_required"`, so an elicitation pause is queryable apart from a finished
+call). A failure logs `mcp.request.failed` at `warning` with the exception
+type and then **re-raises** — the SDK's protocol handling and Sentry own
+errors; the middleware only records that the flow ended that way.
+
+Event names are dotted and stable and the variables are structlog kwargs, so
+they render to JSON fields you can query (for example
+`| json | duration_ms > 500`). Install the optional dependency with
+`django-stateless-mcp[structlog]`, and configure structlog as your project
+prefers.

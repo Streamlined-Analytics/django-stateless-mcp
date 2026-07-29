@@ -60,3 +60,4 @@ nav:
       - ADR-0010 — Request context: adr/0010-request-context.md
       - ADR-0011 — Bearer auth: adr/0011-bearer-auth.md
       - ADR-0012 — Request-state security: adr/0012-request-state-security.md
+      - ADR-0013 — Observability middleware: adr/0013-observability-middleware.md

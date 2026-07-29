@@ -167,3 +167,34 @@ Inside tools, the SDK's own `get_access_token()` returns the verified token.
 Without a `token_verifier` the endpoint is open, and protecting it is your
 project's responsibility — session auth behind `login_required`, a private
 network, or whatever the deployment calls for.
+
+## Elicitation that survives your load balancer
+
+Wire the SDK's request-state security from your Django settings and
+elicitation works across a multi-worker fleet with no sticky routing:
+
+```python
+from mcp.server.mcpserver import MCPServer
+
+from django_stateless_mcp import request_state_security
+
+server = MCPServer(
+    name="my-server",
+    request_state_security=request_state_security(),
+)
+```
+
+A tool that needs input returns the SDK's `InputRequiredResult`; the client
+answers by re-issuing the call with `inputResponses` and the echoed
+`requestState`.
+That state is encrypted, and here is the part that matters: **the SDK's
+default encryption key is random per process**, so with defaults a retry
+landing on a different worker cannot decrypt it — the exact multi-worker
+failure this package exists to remove.
+`request_state_security()` keys from `SECRET_KEY` instead, so every worker
+sharing your settings can resume any elicitation.
+
+`SECRET_KEY_FALLBACKS` are included: Django's normal key-rotation story
+covers in-flight elicitations too.
+A tampered or expired `requestState` is rejected with a protocol error —
+never accepted, never a crash.

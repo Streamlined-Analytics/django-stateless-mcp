@@ -236,3 +236,107 @@ def test_unauthenticated_endpoint_stays_open(client):
     assert response.status_code == 200
     result = json.loads(response.content)["result"]
     assert result["structuredContent"] == {"result": "anonymous"}
+
+
+ELICIT_TOOL = "test_input_required_result_elicitation"
+STATEFUL_TOOL = "test_input_required_result_request_state"
+
+STATELESS_META = {
+    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+    "io.modelcontextprotocol/clientCapabilities": {"elicitation": {}},
+}
+
+
+def post_stateless(client: Client, url: str, tool: str, params: dict[str, Any]) -> Any:
+    """POST a spec-2026-07-28 tools/call: routing headers plus _meta envelope."""
+    body = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": tool, **params, "_meta": STATELESS_META},
+    }
+    headers = {
+        **MCP_HEADERS,
+        "mcp-protocol-version": "2026-07-28",
+        "mcp-method": "tools/call",
+        "mcp-name": tool,
+    }
+    response = client.post(url, data=json.dumps(body), content_type="application/json", headers=headers)
+    return json.loads(response.content)
+
+
+def accept(content: dict[str, Any]) -> dict[str, Any]:
+    """Build the client's accepted-elicitation answer."""
+    return {"action": "accept", "content": content}
+
+
+def test_elicitation_across_two_separate_requests(client):
+    """The flagship flow: elicit in one request, resume in another.
+
+    No connection is held and nothing is remembered between the posts; the
+    second request carries everything needed to complete the call.
+    """
+    round_one = post_stateless(client, MCP_URL, ELICIT_TOOL, {"arguments": {}})["result"]
+
+    assert round_one["resultType"] == "input_required"
+    assert "user_name" in round_one["inputRequests"]
+
+    round_two = post_stateless(
+        client,
+        MCP_URL,
+        ELICIT_TOOL,
+        {
+            "arguments": {},
+            "inputResponses": {"user_name": accept({"name": "Alice"})},
+        },
+    )["result"]
+
+    assert round_two["content"][0]["text"] == "Hello, Alice!"
+
+
+def test_retry_resumes_on_a_different_server_instance(client):
+    """The thesis: any instance can serve the retry, including its state.
+
+    Round one runs on one MCPServer; round two on a separate instance
+    sharing only the Django settings, as two workers in a fleet would. The
+    encrypted requestState minted by the first instance decrypts on the
+    second because request_state_security() keys from SECRET_KEY rather
+    than the SDK's default per-process random key.
+    """
+    round_one = post_stateless(client, MCP_URL, STATEFUL_TOOL, {"arguments": {}})["result"]
+
+    assert round_one["resultType"] == "input_required"
+    state = round_one["requestState"]
+
+    round_two = post_stateless(
+        client,
+        "/mcp-b/",
+        STATEFUL_TOOL,
+        {
+            "arguments": {},
+            "inputResponses": {"confirm": accept({"ok": True})},
+            "requestState": state,
+        },
+    )["result"]
+
+    assert round_two["content"][0]["text"] == "state-ok: confirmation received"
+
+
+def test_tampered_request_state_is_rejected(client):
+    """A modified requestState fails closed with a protocol error."""
+    round_one = post_stateless(client, MCP_URL, STATEFUL_TOOL, {"arguments": {}})["result"]
+    state = round_one["requestState"]
+
+    tampered = state[:-4] + ("AAAA" if not state.endswith("AAAA") else "BBBB")
+    payload = post_stateless(
+        client,
+        MCP_URL,
+        STATEFUL_TOOL,
+        {
+            "arguments": {},
+            "inputResponses": {"confirm": accept({"ok": True})},
+            "requestState": tampered,
+        },
+    )
+
+    assert payload["error"]["data"]["reason"] == "invalid_request_state"

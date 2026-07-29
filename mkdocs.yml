@@ -59,3 +59,4 @@ nav:
       - ADR-0009 — mcp.py autodiscovery: adr/0009-mcp-autodiscovery.md
       - ADR-0010 — Request context: adr/0010-request-context.md
       - ADR-0011 — Bearer auth: adr/0011-bearer-auth.md
+      - ADR-0012 — Request-state security: adr/0012-request-state-security.md

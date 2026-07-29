@@ -6,7 +6,9 @@ This is a test fixture, not an example project: the tests assert on
 
 from __future__ import annotations
 
-SECRET_KEY = "NOTASECRET"
+SECRET_KEY = "django-insecure-NOTASECRET-test-only-0123456789abcdef"
+
+SECRET_KEY_FALLBACKS = ["django-insecure-NOTASECRET-previous-0123456789abcd"]
 
 ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 

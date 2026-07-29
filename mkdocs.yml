@@ -54,3 +54,4 @@ nav:
       - ADR-0004 — pre-commit: adr/0004-pre-commit.md
       - ADR-0005 — mcp dependency: adr/0005-temporary-exclude-newer-exemption.md
       - ADR-0006 — Test matrix: adr/0006-test-matrix.md
+      - ADR-0007 — The view bridge: adr/0007-stateless-view-bridge.md

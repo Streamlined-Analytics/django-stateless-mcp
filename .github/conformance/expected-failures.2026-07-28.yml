@@ -1,0 +1,41 @@
+# Known-failure baseline; the runner fails on stale entries, so it burns down. See ADR-0008.
+client: []
+
+server:
+  # Deliberate deviation: Django's ALLOWED_HOSTS owns host validation (ADR-0007).
+  - dns-rebinding-protection
+
+  # Deferred feature: subscriptions/listen needs SSE streaming (ADR-0007, ADR-0008).
+  - server-stateless
+
+  # Fixture gaps: tests/mcp_server.py lacks the scenario's test_* tools; close per phase.
+  - completion-complete
+  - tools-call-image
+  - tools-call-audio
+  - tools-call-embedded-resource
+  - tools-call-mixed-content
+  - tools-call-with-progress
+  - json-schema-2020-12
+  - resources-read-text
+  - resources-read-binary
+  - resources-templates-read
+  - prompts-get-simple
+  - prompts-get-with-args
+  - prompts-get-embedded-resource
+  - prompts-get-with-image
+  - http-custom-header-server-validation
+
+  # Fixture gaps, elicitation: burn down in Phase 6 (state security + flagship tests).
+  - input-required-result-basic-elicitation
+  - input-required-result-basic-sampling
+  - input-required-result-basic-list-roots
+  - input-required-result-request-state
+  - input-required-result-multiple-input-requests
+  - input-required-result-multi-round
+  - input-required-result-non-tool-request
+  - input-required-result-result-type
+  - input-required-result-tampered-state
+  - input-required-result-capability-check
+  # These two flip pass/fail while no fixture tool elicits; deterministic after Phase 6.
+  - input-required-result-missing-input-response
+  - input-required-result-validate-input

@@ -22,3 +22,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0010](0010-request-context.md) | The Django request rides the transport scope; sync tools thread via the SDK |
 | [ADR-0011](0011-bearer-auth.md) | Bearer auth enforced in the view via the SDK's TokenVerifier protocol |
 | [ADR-0012](0012-request-state-security.md) | Request-state security keyed from SECRET_KEY; flagship elicitation tests |
+| [ADR-0013](0013-observability-middleware.md) | Flow logging via the SDK's middleware seam, structlog optional |

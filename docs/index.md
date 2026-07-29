@@ -4,11 +4,6 @@ A stateless Model Context Protocol server for Django, built on the **2026-07-28*
 spec. An MCP endpoint becomes an ordinary Django view: no sessions, no SSE, no
 sticky routing, and no dedicated single-process service.
 
-!!! warning "Pre-release"
-
-    The package is scaffolded but the API is not published yet. The design and
-    its rationale are documented; the implementation is in progress.
-
 ## Start here
 
 **[Why stateless](why-stateless.md)** — read this first. It explains the problem

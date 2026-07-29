@@ -122,3 +122,8 @@ def delete_widget(ctx: Context, widget_id: int) -> str:
     if not user.has_perm("auth.delete_user"):
         raise PermissionError("You may not delete widgets.")
     return f"deleted widget {widget_id}"
+
+
+async def resolve_no_user(token: str) -> None:
+    """A resolver that never finds a user, modelling a client-credentials token."""
+    return None

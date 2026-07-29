@@ -515,3 +515,20 @@ def test_required_scopes_without_verifier_is_rejected():
 
     with pytest.raises(ValueError, match="require a token_verifier"):
         mcp_view(server, required_scopes=["mcp:read"])
+
+
+def test_unresolved_user_falls_back_to_anonymous(client):
+    """A verified token whose resolver yields no user gives an anonymous user.
+
+    request.user is always present when a resolver is configured, so a
+    permission check fails closed rather than raising AttributeError.
+    """
+    response = client.post(
+        "/nouser-mcp/",
+        data=request_body("tools/call", {"name": "current_username", "arguments": {}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": ""}

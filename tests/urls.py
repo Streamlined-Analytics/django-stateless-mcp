@@ -7,6 +7,7 @@ from django.urls import URLPattern, URLResolver, path
 from django_stateless_mcp import mcp_view
 from tests.mcp_server import (
     StubVerifier,
+    resolve_no_user,
     resolve_stub_user,
     server,
     server_b,
@@ -31,6 +32,15 @@ urlpatterns: list[URLPattern | URLResolver] = [
             token_verifier=StubVerifier(),
             required_scopes=["mcp:read"],
             user_resolver=resolve_stub_user,
+        ),
+    ),
+    path(
+        "nouser-mcp/",
+        mcp_view(
+            server,
+            token_verifier=StubVerifier(),
+            required_scopes=["mcp:read"],
+            user_resolver=resolve_no_user,
         ),
     ),
     path(

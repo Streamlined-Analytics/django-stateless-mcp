@@ -113,15 +113,21 @@ class BearerAuthenticator:
         return None
 
     async def _bind_django_user(self, scope: MutableMapping[str, Any], connection: HTTPConnection) -> None:
-        """Set ``request.user`` from the verified token, if a resolver is set."""
+        """Set ``request.user`` from the verified token, if a resolver is set.
+
+        When the resolver yields no user -- a client-credentials token, or a
+        user since deleted -- ``request.user`` is set to ``AnonymousUser`` so a
+        permission check fails closed, never with ``AttributeError``.
+        """
         if self._user_resolver is None:
             return
-        token = _bearer_token(connection)
-        if token is None:
-            return
-        django_user = await self._user_resolver(token)
-        if django_user is None:
-            return
         request = scope.get("state", {}).get(_DJANGO_REQUEST_KEY)
-        if request is not None:
-            request.user = django_user
+        if request is None:
+            return
+        token = _bearer_token(connection)
+        django_user = await self._user_resolver(token) if token is not None else None
+        if django_user is None:
+            from django.contrib.auth.models import AnonymousUser
+
+            django_user = AnonymousUser()
+        request.user = django_user

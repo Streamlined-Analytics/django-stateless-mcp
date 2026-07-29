@@ -52,3 +52,4 @@ nav:
       - ADR-0002 — Docs on Read the Docs: adr/0002-docs-on-read-the-docs.md
       - ADR-0003 — Real dependencies: adr/0003-real-dependencies-drop-scaffold.md
       - ADR-0004 — pre-commit: adr/0004-pre-commit.md
+      - ADR-0005 — mcp dependency: adr/0005-temporary-exclude-newer-exemption.md

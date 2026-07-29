@@ -60,6 +60,10 @@ docs-serve:
     -lsof -ti :8000 | xargs kill
     uv run --group docs mkdocs serve
 
+# Run the MCP conformance suite against the fixture server
+conformance:
+    CONFORMANCE_PKG="@modelcontextprotocol/conformance@0.2.0-alpha.10" ./scripts/run_conformance.sh --suite all --spec-version 2026-07-28 --expected-failures .github/conformance/expected-failures.2026-07-28.yml
+
 # Build docs (strict mode, fails on warnings)
 docs-build:
     uv run --group docs mkdocs build --strict

@@ -17,3 +17,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0005](0005-temporary-exclude-newer-exemption.md) | Depend on mcp 2.0.0 via a time-boxed exclude-newer exemption |
 | [ADR-0006](0006-test-matrix.md) | Test across Django 5.2 and 6.0; SDK-main env is advisory |
 | [ADR-0007](0007-stateless-view-bridge.md) | `mcp_view(server)` bridges Django to the SDK, one session manager per request |
+| [ADR-0008](0008-conformance-suite.md) | The official MCP conformance suite runs in CI against a bootable fixture |

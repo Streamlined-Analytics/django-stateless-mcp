@@ -112,7 +112,7 @@ async def test_consecutive_requests_share_no_state(async_client):
 def test_autodiscovery_imported_the_app_mcp_module(client):
     """Tools registered in an app's mcp.py are served without explicit import.
 
-    Nothing in the test suite or URLconf imports tests.mcp, so multiply can
+    Nothing in the test suite or URLconf imports example.mcp, so multiply can
     only be present if the app config's autodiscovery imported it.
     """
     response = post(client, "tools/list")
@@ -502,7 +502,7 @@ def test_hidden_tool_still_execution_gated(client):
 def test_user_resolver_without_verifier_is_rejected():
     """Misconfiguring auth fails loudly rather than leaving the endpoint open."""
     from django_stateless_mcp import mcp_view
-    from tests.mcp_server import resolve_stub_user, server
+    from example.mcp_server import resolve_stub_user, server
 
     with pytest.raises(ValueError, match="require a token_verifier"):
         mcp_view(server, user_resolver=resolve_stub_user)
@@ -511,7 +511,7 @@ def test_user_resolver_without_verifier_is_rejected():
 def test_required_scopes_without_verifier_is_rejected():
     """Scopes without a verifier are equally meaningless and rejected."""
     from django_stateless_mcp import mcp_view
-    from tests.mcp_server import server
+    from example.mcp_server import server
 
     with pytest.raises(ValueError, match="require a token_verifier"):
         mcp_view(server, required_scopes=["mcp:read"])

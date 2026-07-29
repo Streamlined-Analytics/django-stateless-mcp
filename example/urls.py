@@ -1,11 +1,16 @@
-"""URLconf fixture for the test suite."""
+"""URLconf for the example project, shared with the test suite.
+
+Each endpoint demonstrates one configuration of ``mcp_view`` — open,
+bearer-authenticated, user-resolving, permission-filtered — and the tests
+assert against the same URLs the demo serves.
+"""
 
 from __future__ import annotations
 
 from django.urls import URLPattern, URLResolver, path
 
 from django_stateless_mcp import mcp_view
-from tests.mcp_server import (
+from example.mcp_server import (
     StubVerifier,
     resolve_no_user,
     resolve_stub_user,

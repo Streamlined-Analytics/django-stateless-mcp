@@ -1,9 +1,16 @@
-"""An MCP server fixture for the test suite."""
+"""The example project's MCP servers, shared with the package's test suite."""
 
 from __future__ import annotations
 
+import os
+
 from asgiref.sync import sync_to_async
-from django.contrib.auth.models import User
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    AnonymousUser,
+    PermissionsMixin,
+    User,
+)
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 from mcp.server.mcpserver import Context, MCPServer
@@ -16,11 +23,12 @@ from django_stateless_mcp import (
 )
 
 
-def _delete_widget_visible(user, tool_name):
+def _delete_widget_visible(user: AbstractBaseUser | AnonymousUser, tool_name: str) -> bool:
     """delete_widget is visible only to users who may delete users."""
     if tool_name != "delete_widget":
         return True
-    return user.has_perm("auth.delete_user")
+    # AbstractBaseUser alone has no has_perm; anyone outside the mixin lacks the perm.
+    return isinstance(user, PermissionsMixin) and user.has_perm("auth.delete_user")
 
 
 server = MCPServer(
@@ -67,6 +75,17 @@ server_b = MCPServer(
 def add(a: int, b: int) -> int:
     """Add two integers."""
     return a + b
+
+
+@server.tool()
+def worker_pid() -> int:
+    """Return the OS process id of the worker serving this call.
+
+    Under `just demo-asgi` (several worker processes) this makes the
+    package's thesis visible: an elicitation issued by one pid resumes
+    on another, because no worker holds any per-flow state.
+    """
+    return os.getpid()
 
 
 @server.tool()

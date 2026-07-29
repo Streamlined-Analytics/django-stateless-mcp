@@ -60,6 +60,18 @@ docs-serve:
     -lsof -ti :8000 | xargs kill
     uv run --group docs mkdocs serve
 
+# Run the example project under WSGI (Django dev server)
+demo:
+    uv run python manage.py migrate
+    uv run python manage.py seed
+    uv run python manage.py runserver
+
+# Run the example project under ASGI with four workers, to see statelessness live
+demo-asgi:
+    uv run python manage.py migrate
+    uv run python manage.py seed
+    uv run --with uvicorn uvicorn example.asgi:application --workers 4
+
 # Run the MCP conformance suite against the fixture server
 conformance:
     CONFORMANCE_PKG="@modelcontextprotocol/conformance@0.2.0-alpha.10" ./scripts/run_conformance.sh --suite all --spec-version 2026-07-28 --expected-failures .github/conformance/expected-failures.2026-07-28.yml

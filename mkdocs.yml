@@ -1,0 +1,52 @@
+site_name: django-stateless-mcp
+site_description: Stateless Model Context Protocol (MCP) server for Django, built on the 2026-07-28 spec.
+site_url: https://django-stateless-mcp.readthedocs.io/
+repo_url: https://github.com/Streamlined-Analytics/django-stateless-mcp
+repo_name: Streamlined-Analytics/django-stateless-mcp
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - content.action.edit
+    - content.code.copy
+    - navigation.sections
+    - navigation.top
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Why stateless: why-stateless.md
+  - Installation: installation.md
+  - Usage: usage.md
+  - API reference: reference.md
+  - Decisions:
+      - Overview: adr/index.md
+      - ADR-0001 — mypy strict over ty: adr/0001-mypy-strict-over-ty.md
+      - ADR-0002 — Docs on Read the Docs: adr/0002-docs-on-read-the-docs.md

@@ -1,6 +1,7 @@
 # django-stateless-mcp
 
 ![PyPI version](https://img.shields.io/pypi/v/django-stateless-mcp.svg)
+[![Documentation status](https://readthedocs.org/projects/django-stateless-mcp/badge/?version=stable)](https://django-stateless-mcp.readthedocs.io/)
 
 A stateless Model Context Protocol server for Django, built on the **2026-07-28**
 spec. An MCP endpoint becomes an ordinary Django view — no sessions, no SSE, no
@@ -17,7 +18,7 @@ stream and a blocked worker, so a reply that round-robined to another worker
 failed. The 2026-07-28 spec makes MCP plain request/response HTTP — Django's home
 turf — and turns elicitation into a retry any instance can serve. That is the
 change this package is built on; see
-[Why stateless](https://django-stateless-mcp.readthedocs.io/why-stateless/) for
+[Why stateless](https://django-stateless-mcp.readthedocs.io/en/stable/why-stateless/) for
 the full story.
 
 ## Usage

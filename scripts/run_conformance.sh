@@ -15,7 +15,7 @@ if (: > "/dev/tcp/127.0.0.1/${PORT}") 2>/dev/null; then
 fi
 
 echo "Starting Django fixture server on port ${PORT}..."
-DJANGO_SETTINGS_MODULE=tests.settings PYTHONPATH=. \
+DJANGO_SETTINGS_MODULE=example.settings PYTHONPATH=. \
     uv run python -m django runserver "127.0.0.1:${PORT}" --noreload &
 SERVER_PID=$!
 

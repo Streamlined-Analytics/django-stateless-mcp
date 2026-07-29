@@ -24,3 +24,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0012](0012-request-state-security.md) | Request-state security keyed from SECRET_KEY; flagship elicitation tests |
 | [ADR-0013](0013-observability-middleware.md) | Flow logging via the SDK's middleware seam, structlog optional |
 | [ADR-0014](0014-user-and-tool-permissions.md) | Resolve the Django user in tools; filter tools/list by permission |
+| [ADR-0015](0015-runnable-example-project.md) | One runnable example project, shared with the test suite |

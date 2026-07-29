@@ -1,4 +1,4 @@
-"""Autodiscovered tool registrations for the ``tests`` app.
+"""Autodiscovered tool registrations for the ``example`` app.
 
 Nothing imports this module explicitly: it registers ``multiply`` only if
 ``django_stateless_mcp``'s autodiscovery imported it, which is what the
@@ -28,7 +28,7 @@ from mcp.types import (
     TextContent,
 )
 
-from tests.mcp_server import server, server_b
+from example.mcp_server import server, server_b
 
 
 @server.tool()

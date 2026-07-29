@@ -1,16 +1,12 @@
-"""Minimal Django settings for the package's own test suite.
+"""Django settings for the test suite: the example project plus test overrides.
 
-This is a test fixture, not an example project: the tests assert on
-``django_stateless_mcp``, not on anything defined here.
+The tests exercise the same settings, URLs and MCP servers a person can boot
+with `just demo`, so the runnable example is itself under test. See ADR-0015.
 """
 
 from __future__ import annotations
 
-SECRET_KEY = "django-insecure-NOTASECRET-test-only-0123456789abcdef"
-
-SECRET_KEY_FALLBACKS = ["django-insecure-NOTASECRET-previous-0123456789abcd"]
-
-ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
+from example.settings import *  # noqa: F403
 
 # The transport is stateless and stores nothing, so an in-memory DB is enough.
 DATABASES = {
@@ -19,17 +15,3 @@ DATABASES = {
         "NAME": ":memory:",
     },
 }
-
-ROOT_URLCONF = "tests.urls"
-
-INSTALLED_APPS = [
-    "django.contrib.contenttypes",
-    "django.contrib.auth",
-    "django_stateless_mcp",
-    # An installed app with an mcp.py, so autodiscovery has something to find.
-    "tests",
-]
-
-USE_TZ = True
-
-TIME_ZONE = "UTC"

@@ -45,6 +45,7 @@ nav:
   - Why stateless: why-stateless.md
   - Installation: installation.md
   - Usage: usage.md
+  - Try it live: example.md
   - API reference: reference.md
   - Recipes:
       - OAuth & permissions: recipes/oauth-and-permissions.md
@@ -64,3 +65,4 @@ nav:
       - ADR-0012 — Request-state security: adr/0012-request-state-security.md
       - ADR-0013 — Observability middleware: adr/0013-observability-middleware.md
       - ADR-0014 — User & tool permissions: adr/0014-user-and-tool-permissions.md
+      - ADR-0015 — Runnable example project: adr/0015-runnable-example-project.md

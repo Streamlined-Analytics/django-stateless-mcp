@@ -46,6 +46,9 @@ dmypy.json
 .pyre/
 .pytype/
 
+# Example project local database
+example/db.sqlite3
+
 # Documentation build output
 site/
 

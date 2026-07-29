@@ -115,8 +115,10 @@ testpaths = [ "tests" ]
 
 [tool.coverage]
 run.branch = true
+# Pure launch entrypoints; only a booted server executes them.
+run.omit = [ "example/asgi.py", "example/wsgi.py" ]
 run.parallel = true
-run.source = [ "src/", "tests/" ]
+run.source = [ "example/", "src/", "tests/" ]
 report.exclude_also = [
   "@(abc\\.)?abstractmethod",
   "@overload",

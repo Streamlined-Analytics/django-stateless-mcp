@@ -68,8 +68,10 @@ jobs:
 
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
-      - name: Run tests with coverage
-        run: uv run --python=${{ matrix.python-version }} coverage run -m pytest
+      - name: Run tox envs for Python ${{ matrix.python-version }}
+        run: >
+          uvx --with tox-uv tox run
+          -f py$(echo ${{ matrix.python-version }} | tr -d .) mcp-release
 
       - name: Upload coverage data
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -77,6 +79,29 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: .coverage.*
           include-hidden-files: true
+
+  # Advisory: SDK git main can break through no fault of ours. See ADR-0006.
+  test-mcp-main:
+    name: Test against mcp git main (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Run tox envs for Python ${{ matrix.python-version }}
+        run: >
+          uvx --with tox-uv tox run
+          -f py$(echo ${{ matrix.python-version }} | tr -d .) mcp-latest
 
   coverage:
     name: Coverage

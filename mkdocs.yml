@@ -53,3 +53,4 @@ nav:
       - ADR-0003 — Real dependencies: adr/0003-real-dependencies-drop-scaffold.md
       - ADR-0004 — pre-commit: adr/0004-pre-commit.md
       - ADR-0005 — mcp dependency: adr/0005-temporary-exclude-newer-exemption.md
+      - ADR-0006 — Test matrix: adr/0006-test-matrix.md

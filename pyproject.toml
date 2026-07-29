@@ -44,6 +44,7 @@ dev = [
 test = [
   "coverage",
   "pytest",
+  "pytest-django",
 ]
 docs = [
   # MkDocs 2.0 breaks all plugins and themes, no migration path. See ADR-0002.
@@ -56,6 +57,7 @@ lint = [
   "ruff",
 ]
 typecheck = [
+  "django-stubs",
   "mypy",
 ]
 
@@ -92,13 +94,20 @@ enable_error_code = [
   "truthy-bool",
 ]
 strict = true
+plugins = [ "mypy_django_plugin.main" ]
 overrides = [
   # Annotating every test adds noise without adding safety.
   { module = "tests.*", allow_untyped_defs = true },
 ]
 
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+
 [tool.pytest]
-ini_options.testpaths = [ "tests" ]
+django_find_project = false
+DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = [ "." ]
+testpaths = [ "tests" ]
 
 [tool.coverage]
 run.branch = true

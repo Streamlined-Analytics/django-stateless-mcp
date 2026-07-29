@@ -99,3 +99,7 @@ testpaths = ["tests"]
 [tool.uv]
 package = true
 default-groups = ["dev"]
+# Relative exclude-newer durations ("1 week") were added in uv 0.9.17; an
+# older uv cannot parse the value below and would fail confusingly.
+required-version = ">=0.9.17"
+exclude-newer = "1 week"

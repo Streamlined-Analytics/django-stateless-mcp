@@ -4,6 +4,24 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/London
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+
+  # uv.lock is tracked, so Dependabot owns bumping the Python dependencies
+  # inside it. The 7-day cooldown matches exclude-newer = "1 week" in
+  # pyproject.toml — without it Dependabot would propose releases that the
+  # resolver then refuses to lock.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/London
     cooldown:
       default-days: 7
     open-pull-requests-limit: 5

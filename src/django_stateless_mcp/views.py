@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from mcp.server.mcpserver import MCPServer
     from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
+    from django_stateless_mcp.auth import UserResolver
+
 __all__ = ["mcp_view"]
 
 # Django sets Content-Length itself; echoing the SDK's risks a mismatch.
@@ -148,6 +150,7 @@ def mcp_view(
     *,
     token_verifier: TokenVerifier | None = None,
     required_scopes: Sequence[str] = (),
+    user_resolver: UserResolver | None = None,
 ) -> Callable[[HttpRequest], Coroutine[Any, Any, HttpResponse]]:
     """Return a Django view serving ``server`` over stateless streamable HTTP.
 
@@ -163,10 +166,25 @@ def mcp_view(
     ``required_scopes`` the token lacks get a 403. Without a verifier the
     endpoint is open, and protecting it is the project's responsibility.
 
+    Pass a ``user_resolver`` -- an async ``(token) -> user`` -- to set
+    ``request.user`` from the verified token, so tools can permission-check with
+    ``django_request(ctx).user.has_perm(...)``. Requires ``token_verifier``.
+
     The view is asynchronous, so it runs natively under ASGI. Django starts an
     event loop per request under WSGI, so one view serves both deployments.
+
+    Raises ``ValueError`` if ``user_resolver`` or ``required_scopes`` is given
+    without a ``token_verifier`` -- both are meaningless without authentication,
+    and silently ignoring them would leave the endpoint unexpectedly open.
     """
-    authenticator = BearerAuthenticator(token_verifier, required_scopes) if token_verifier is not None else None
+    if token_verifier is None and (user_resolver is not None or required_scopes):
+        raise ValueError(
+            "user_resolver and required_scopes require a token_verifier; "
+            "without one the endpoint is unauthenticated and they are ignored."
+        )
+    authenticator = (
+        BearerAuthenticator(token_verifier, required_scopes, user_resolver) if token_verifier is not None else None
+    )
     bridge = _StatelessBridge(server, authenticator)
 
     async def view(request: HttpRequest) -> HttpResponse:

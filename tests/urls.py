@@ -5,7 +5,14 @@ from __future__ import annotations
 from django.urls import URLPattern, URLResolver, path
 
 from django_stateless_mcp import mcp_view
-from tests.mcp_server import StubVerifier, server, server_b
+from tests.mcp_server import (
+    StubVerifier,
+    resolve_no_user,
+    resolve_stub_user,
+    server,
+    server_b,
+    server_filtered,
+)
 
 urlpatterns: list[URLPattern | URLResolver] = [
     path("mcp/", mcp_view(server)),
@@ -16,6 +23,33 @@ urlpatterns: list[URLPattern | URLResolver] = [
             server,
             token_verifier=StubVerifier(),
             required_scopes=["mcp:read"],
+        ),
+    ),
+    path(
+        "user-mcp/",
+        mcp_view(
+            server,
+            token_verifier=StubVerifier(),
+            required_scopes=["mcp:read"],
+            user_resolver=resolve_stub_user,
+        ),
+    ),
+    path(
+        "nouser-mcp/",
+        mcp_view(
+            server,
+            token_verifier=StubVerifier(),
+            required_scopes=["mcp:read"],
+            user_resolver=resolve_no_user,
+        ),
+    ),
+    path(
+        "filtered-mcp/",
+        mcp_view(
+            server_filtered,
+            token_verifier=StubVerifier(),
+            required_scopes=["mcp:read"],
+            user_resolver=resolve_stub_user,
         ),
     ),
     path(

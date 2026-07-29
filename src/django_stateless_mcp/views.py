@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from mcp.server.mcpserver import MCPServer
     from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
+    from django_stateless_mcp.auth import UserResolver
+
 __all__ = ["mcp_view"]
 
 # Django sets Content-Length itself; echoing the SDK's risks a mismatch.
@@ -148,6 +150,7 @@ def mcp_view(
     *,
     token_verifier: TokenVerifier | None = None,
     required_scopes: Sequence[str] = (),
+    user_resolver: UserResolver | None = None,
 ) -> Callable[[HttpRequest], Coroutine[Any, Any, HttpResponse]]:
     """Return a Django view serving ``server`` over stateless streamable HTTP.
 
@@ -163,10 +166,16 @@ def mcp_view(
     ``required_scopes`` the token lacks get a 403. Without a verifier the
     endpoint is open, and protecting it is the project's responsibility.
 
+    Pass a ``user_resolver`` -- an async ``(token) -> user`` -- to set
+    ``request.user`` from the verified token, so tools can permission-check with
+    ``django_request(ctx).user.has_perm(...)``. Requires ``token_verifier``.
+
     The view is asynchronous, so it runs natively under ASGI. Django starts an
     event loop per request under WSGI, so one view serves both deployments.
     """
-    authenticator = BearerAuthenticator(token_verifier, required_scopes) if token_verifier is not None else None
+    authenticator = (
+        BearerAuthenticator(token_verifier, required_scopes, user_resolver) if token_verifier is not None else None
+    )
     bridge = _StatelessBridge(server, authenticator)
 
     async def view(request: HttpRequest) -> HttpResponse:

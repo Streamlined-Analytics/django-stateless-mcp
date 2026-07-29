@@ -379,3 +379,121 @@ def test_failed_dispatch_logs_and_reraises(client):
     assert "error" in response
     events = [e for e in captured if e["event"] == "mcp.request.failed"]
     assert events and events[0]["error_type"] == "MCPError"
+
+
+USER_URL = "/user-mcp/"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_tool_reads_authenticated_django_user(client):
+    """With a user_resolver, django_request(ctx).user is the Django user."""
+    from django.contrib.auth.models import User
+
+    User.objects.create_user("mcp-test-user")
+    response = client.post(
+        USER_URL,
+        data=request_body("tools/call", {"name": "current_username", "arguments": {}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": "mcp-test-user"}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_permission_locked_tool_denies_user_without_perm(client):
+    """A tool gating on user.has_perm refuses a user who lacks it."""
+    from django.contrib.auth.models import User
+
+    User.objects.create_user("mcp-test-user")
+    response = client.post(
+        USER_URL,
+        data=request_body("tools/call", {"name": "delete_widget", "arguments": {"widget_id": 1}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["isError"] is True
+
+
+@pytest.mark.django_db(transaction=True)
+def test_permission_locked_tool_allows_user_with_perm(client):
+    """The same tool runs for a user granted the permission."""
+    from django.contrib.auth.models import Permission, User
+
+    user = User.objects.create_user("mcp-test-user")
+    user.user_permissions.add(Permission.objects.get(codename="delete_user"))
+    response = client.post(
+        USER_URL,
+        data=request_body("tools/call", {"name": "delete_widget", "arguments": {"widget_id": 7}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": "deleted widget 7"}
+
+
+FILTERED_URL = "/filtered-mcp/"
+
+
+def _list_names(response: Any) -> set[str]:
+    return {t["name"] for t in json.loads(response.content)["result"]["tools"]}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_hidden_tool_absent_from_list_without_perm(client):
+    """A user lacking the perm never sees the tool in tools/list."""
+    from django.contrib.auth.models import User
+
+    User.objects.create_user("mcp-test-user")
+    response = client.post(
+        FILTERED_URL,
+        data=request_body("tools/list"),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    names = _list_names(response)
+    assert "public_ping" in names
+    assert "delete_widget" not in names
+
+
+@pytest.mark.django_db(transaction=True)
+def test_hidden_tool_present_in_list_with_perm(client):
+    """A user with the perm sees the tool."""
+    from django.contrib.auth.models import Permission, User
+
+    user = User.objects.create_user("mcp-test-user")
+    user.user_permissions.add(Permission.objects.get(codename="delete_user"))
+    response = client.post(
+        FILTERED_URL,
+        data=request_body("tools/list"),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    assert "delete_widget" in _list_names(response)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_hidden_tool_still_execution_gated(client):
+    """Visibility is not the boundary: a hidden tool called by name is refused.
+
+    The client never saw delete_widget in tools/list, but nothing stops it
+    calling the name directly. The tool's own permission check is what makes
+    that safe -- filtering alone would be security theatre.
+    """
+    from django.contrib.auth.models import User
+
+    User.objects.create_user("mcp-test-user")
+    response = client.post(
+        FILTERED_URL,
+        data=request_body("tools/call", {"name": "delete_widget", "arguments": {"widget_id": 1}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    assert json.loads(response.content)["result"]["isError"] is True

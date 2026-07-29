@@ -12,11 +12,16 @@ from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser, BearerAuth
 from starlette.requests import HTTPConnection
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, MutableMapping, Sequence
+    from collections.abc import Awaitable, Callable, Iterator, MutableMapping, Sequence
 
+    from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
     from mcp.server.auth.provider import TokenVerifier
 
+    UserResolver = Callable[[str], Awaitable[AbstractBaseUser | AnonymousUser | None]]
+
 __all__ = ["BearerAuthenticator", "access_token_context"]
+
+_DJANGO_REQUEST_KEY = "django_request"
 
 
 @contextlib.contextmanager
@@ -50,6 +55,14 @@ def _challenge(status: int, error: str, description: str) -> HttpResponse:
     return response
 
 
+def _bearer_token(connection: HTTPConnection) -> str | None:
+    """Extract the bearer token from an Authorization header, if present."""
+    header = connection.headers.get("authorization")
+    if not header or not header.lower().startswith("bearer "):
+        return None
+    return header[7:]
+
+
 class BearerAuthenticator:
     """Authenticates a synthesised ASGI scope with the SDK's own machinery.
 
@@ -59,13 +72,24 @@ class BearerAuthenticator:
     ``scope["auth"]``, plus the ``auth_context_var`` that backs the SDK's
     ``get_access_token()``. That contract is also what request-state
     security binds resume tokens to.
+
+    When a ``user_resolver`` is given, the verified token is resolved to a
+    Django user which is set on the request, so a tool reaching the request
+    with ``django_request(ctx)`` sees ``request.user`` populated and can
+    permission-check with the ordinary ``user.has_perm(...)``.
     """
 
-    __slots__ = ("_backend", "_required_scopes")
+    __slots__ = ("_backend", "_required_scopes", "_user_resolver")
 
-    def __init__(self, token_verifier: TokenVerifier, required_scopes: Sequence[str] = ()) -> None:
+    def __init__(
+        self,
+        token_verifier: TokenVerifier,
+        required_scopes: Sequence[str] = (),
+        user_resolver: UserResolver | None = None,
+    ) -> None:
         self._backend = BearerAuthBackend(token_verifier)
         self._required_scopes = tuple(required_scopes)
+        self._user_resolver = user_resolver
 
     async def authenticate(self, scope: MutableMapping[str, Any]) -> HttpResponse | None:
         """Authenticate ``scope`` in place, or return the error response.
@@ -73,7 +97,8 @@ class BearerAuthenticator:
         On success the scope carries the authenticated user and credentials
         and ``None`` is returned; the caller proceeds to the handler.
         """
-        result = await self._backend.authenticate(HTTPConnection(scope))
+        connection = HTTPConnection(scope)
+        result = await self._backend.authenticate(connection)
         if result is None:
             return _challenge(401, "invalid_token", "Authentication required")
 
@@ -84,4 +109,19 @@ class BearerAuthenticator:
 
         scope["user"] = user
         scope["auth"] = credentials
+        await self._bind_django_user(scope, connection)
         return None
+
+    async def _bind_django_user(self, scope: MutableMapping[str, Any], connection: HTTPConnection) -> None:
+        """Set ``request.user`` from the verified token, if a resolver is set."""
+        if self._user_resolver is None:
+            return
+        token = _bearer_token(connection)
+        if token is None:
+            return
+        django_user = await self._user_resolver(token)
+        if django_user is None:
+            return
+        request = scope.get("state", {}).get(_DJANGO_REQUEST_KEY)
+        if request is not None:
+            request.user = django_user

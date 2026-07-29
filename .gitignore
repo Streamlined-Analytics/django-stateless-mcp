@@ -52,3 +52,6 @@ site/
 # IDE files
 # .idea/
 # .vscode/
+
+# Local agent guidance (not a committed team convention)
+CLAUDE.md

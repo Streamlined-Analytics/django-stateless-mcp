@@ -99,3 +99,4 @@ testpaths = ["tests"]
 [tool.uv]
 package = true
 default-groups = ["dev"]
+exclude-newer = "1 week"

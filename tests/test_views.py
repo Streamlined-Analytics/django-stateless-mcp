@@ -65,6 +65,35 @@ def test_response_carries_no_session_identifier(client):
     assert "Mcp-Session-Id" not in response.headers
 
 
+def test_get_is_rejected_not_hung(client):
+    """GET gets an immediate 405: stateless MCP has no server-push stream.
+
+    0.1.1 routed GET into the SDK's SSE path, whose disconnect listener
+    looped forever against the bridge's synthesized ``receive`` -- one
+    anonymous GET pegged a worker at 100% CPU permanently.
+    """
+    response = client.get(MCP_URL, headers=MCP_HEADERS)
+
+    assert response.status_code == 405
+    assert response.headers["Allow"] == "POST"
+
+
+def test_delete_is_rejected(client):
+    """DELETE (session termination) is meaningless without sessions."""
+    response = client.delete(MCP_URL, headers=MCP_HEADERS)
+
+    assert response.status_code == 405
+    assert response.headers["Allow"] == "POST"
+
+
+@pytest.mark.anyio
+async def test_get_is_rejected_under_asgi(async_client):
+    """The POST-only guard holds on the native async path too."""
+    response = await async_client.get(MCP_URL, headers=MCP_HEADERS)
+
+    assert response.status_code == 405
+
+
 def test_unknown_tool_reports_an_error(client):
     """An unknown tool is reported in-band rather than crashing the view."""
     response = post(client, "tools/call", {"name": "nope", "arguments": {}})

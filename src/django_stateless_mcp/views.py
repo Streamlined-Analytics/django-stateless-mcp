@@ -10,7 +10,9 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 import anyio
+import anyio.to_thread
 from django.core.handlers.asgi import ASGIRequest
+from django.db import close_old_connections
 from django.http import HttpResponse, HttpResponseBase, HttpResponseNotAllowed, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from mcp.server.transport_security import TransportSecuritySettings
@@ -212,6 +214,11 @@ class _StatelessBridge:
         with access_token_context(scope):
             async with session_manager.run():
                 await session_manager.handle_request(scope, receive, response.send)
+        # Sync tools run in anyio's worker threads, where Django's own
+        # request_finished cleanup never reaches; recycle those connections
+        # where they live. LIFO reuse makes this land on the thread that just
+        # served the tool. See ADR-0021.
+        await anyio.to_thread.run_sync(close_old_connections)
         return response.to_django()
 
     async def _handle_listen(self, request: HttpRequest, scope: MutableMapping[str, Any]) -> StreamingHttpResponse:

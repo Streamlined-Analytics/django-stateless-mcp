@@ -194,6 +194,7 @@ Note the in-memory bus is per-process: under the 4-worker demo, the trigger only
 - `add`, `multiply` — plain tools (`multiply` arrives via `mcp.py` autodiscovery).
 - `worker_pid` — which process answered.
 - `count_users`, `current_username`, `delete_widget` — ORM, resolved user, permission gating (on `/user-mcp/`); `delete_widget` requires a `widget_id` argument.
+- `db_thread_info` — which worker thread served the call and whether it still holds a DB connection; call `count_users` then this to watch connection hygiene working ([ADR-0021](../docs/adr/0021-worker-thread-connection-hygiene.md)).
 - `public_ping` vs `delete_widget` on `/filtered-mcp/` — tool visibility filtered per user.
 - `test_input_required_result_*` — the SEP-2322 elicitation/sampling/roots fixtures the conformance suite also runs against.
 

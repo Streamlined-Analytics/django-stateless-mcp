@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import (
@@ -11,6 +12,7 @@ from django.contrib.auth.models import (
     PermissionsMixin,
     User,
 )
+from django.db import connection
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 from mcp.server.mcpserver import Context, MCPServer
@@ -112,6 +114,20 @@ async def test_trigger_prompt_change() -> str:
 def request_path(ctx: Context) -> str:
     """Echo the path of the Django request serving this call."""
     return django_request(ctx).path
+
+
+@server.tool()
+def db_thread_info(ctx: Context) -> str:
+    """Show the worker thread serving this tool and its DB connection state.
+
+    With connection hygiene working, ``connection_open`` reads ``False``
+    even on a thread that served an ORM tool moments ago -- the bridge
+    recycled it after that request (ADR-0021). Watch it live in Inspector:
+    call ``count_users`` then this.
+    """
+    django_request(ctx)
+    thread_name = threading.current_thread().name
+    return f"thread={thread_name} connection_open={connection.connection is not None}"
 
 
 @server.tool()

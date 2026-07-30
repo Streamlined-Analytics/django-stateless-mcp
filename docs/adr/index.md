@@ -30,3 +30,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0018](0018-example-auth-middleware.md) | The example carries the standard middleware; the view is CSRF-exempt |
 | [ADR-0019](0019-multiworker-harness.md) | Out-of-process multi-worker test harness |
 | [ADR-0020](0020-subscription-streams.md) | Subscription streams — ASGI serves them, WSGI refuses them |
+| [ADR-0021](0021-worker-thread-connection-hygiene.md) | Worker-thread database-connection hygiene |

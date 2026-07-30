@@ -215,7 +215,9 @@ class _StatelessBridge:
                     await session_manager.handle_request(scope, receive, response.send)
         finally:
             # Django's request_finished never reaches anyio's tool threads; recycle there. See ADR-0021.
-            await anyio.to_thread.run_sync(close_old_connections)
+            with anyio.CancelScope(shield=True):
+                # Shielded: a cancelled request must still clean its connections.
+                await anyio.to_thread.run_sync(close_old_connections)
         return response.to_django()
 
     async def _handle_listen(self, request: HttpRequest, scope: MutableMapping[str, Any]) -> StreamingHttpResponse:

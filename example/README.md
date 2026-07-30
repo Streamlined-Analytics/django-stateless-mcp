@@ -177,4 +177,5 @@ mcp.request.completed … method=tools/call exit=completed
 - **Inspector defaults to the Legacy protocol era** — set Modern per section 3, or elicitation fails exactly like a legacy client.
 - **The grant/revoke state persists** in `example/db.sqlite3` between runs — start permission demos with `seed --revoke-delete` if you want the hidden-tool state.
 - **A bare GET is answered with `405`**, not an SSE stream — stateless MCP has no server-push channel ([ADR-0017](../docs/adr/0017-post-only-view.md)).
+- **`CsrfViewMiddleware` does not block the endpoints** — the view is CSRF-exempt, because MCP clients authenticate with bearer headers rather than the ambient cookies CSRF forges ([ADR-0018](../docs/adr/0018-example-auth-middleware.md)).
 - **`delete_widget` without `widget_id`** is a validation error, not a permission refusal — don't misread it in permission tests.

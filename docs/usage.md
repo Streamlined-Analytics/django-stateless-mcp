@@ -123,6 +123,14 @@ On a project with neither, a tool touching `.user` raises `AttributeError` —
 keep the standard auth middleware in `MIDDLEWARE`, as any conventional Django
 project does.
 
+The view is CSRF-exempt, so `CsrfViewMiddleware` in that standard stack does
+not 403 your MCP endpoint.
+CSRF forges the browser's ambient cookie credentials; MCP clients hold no CSRF
+token and authenticate with a bearer header an attacker's page cannot set —
+the same posture DRF takes for token-authenticated APIs.
+If you deliberately put cookie-session authentication in front of an MCP
+endpoint, that protection becomes yours to provide.
+
 ## Sync tools and the ORM
 
 Plain `def` tools are run by the SDK in a worker thread, off the event loop, so

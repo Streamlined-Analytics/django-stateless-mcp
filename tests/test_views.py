@@ -65,6 +65,22 @@ def test_response_carries_no_session_identifier(client):
     assert "Mcp-Session-Id" not in response.headers
 
 
+def test_view_is_csrf_exempt():
+    """CsrfViewMiddleware must not 403 MCP requests.
+
+    The default test client skips CSRF enforcement, which is how this went
+    unseen: in any project running the standard middleware, every MCP POST
+    got \"403 CSRF cookie not set\" until the view was marked exempt. MCP
+    clients hold no CSRF token -- they authenticate by bearer token, not
+    ambient cookies, so CSRF does not apply.
+    """
+    csrf_client = Client(enforce_csrf_checks=True)
+
+    response = post(csrf_client, "tools/list")
+
+    assert response.status_code == 200
+
+
 def test_get_is_rejected_not_hung(client):
     """GET gets an immediate 405: stateless MCP has no server-push stream.
 

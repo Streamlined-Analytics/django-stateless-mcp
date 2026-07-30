@@ -6,6 +6,7 @@ import threading
 from typing import TYPE_CHECKING, Any
 
 from django.http import HttpResponse, HttpResponseNotAllowed
+from django.views.decorators.csrf import csrf_exempt
 from mcp.server.transport_security import TransportSecuritySettings
 
 from django_stateless_mcp.auth import BearerAuthenticator, access_token_context
@@ -190,6 +191,13 @@ def mcp_view(
     stream and DELETE session termination presuppose a session, which is
     exactly what this view does not have.
 
+    The view is **CSRF-exempt**, or ``CsrfViewMiddleware`` would 403 every MCP
+    request. CSRF forges the browser's ambient cookie credentials; MCP clients
+    authenticate with a bearer token an attacker's page cannot set, and the
+    view grants nothing based on session cookies. If you put cookie-based
+    authentication in front of an MCP endpoint, that protection is yours to
+    provide.
+
     The view is asynchronous, so it runs natively under ASGI. Django starts an
     event loop per request under WSGI, so one view serves both deployments.
 
@@ -210,4 +218,4 @@ def mcp_view(
     async def view(request: HttpRequest) -> HttpResponse:
         return await bridge.handle(request)
 
-    return view
+    return csrf_exempt(view)

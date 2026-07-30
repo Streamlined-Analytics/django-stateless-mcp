@@ -187,7 +187,8 @@ curl -N -X POST http://127.0.0.1:8000/mcp/ \
 
 The first frame is the acknowledgement; then, from another terminal, call the `test_trigger_tool_change` tool (any client — Inspector works) and a `notifications/tools/list_changed` frame appears on the open stream.
 Under `just demo` (WSGI) the same request gets an explicit `501` — live streams need ASGI ([ADR-0020](../docs/adr/0020-subscription-streams.md)).
-Note the in-memory bus is per-process: under the 4-worker demo, the trigger only reaches streams held by the worker that serves it, which is itself a good demonstration of why a real fleet wires an external `SubscriptionBus`.
+Note the in-memory bus is per-process: under the 4-worker demo, the trigger only reaches streams held by the worker that serves it — and the worker holding a stream wins *fewer* `accept()`s, so expect to fire the trigger tens of times (a real run took 31) before one lands.
+That lottery is the live demonstration of why a real fleet wires an external `SubscriptionBus`; for a deterministic demo, run a single worker (`uvicorn example.asgi:application --workers 1`).
 
 ## Tools worth trying
 

@@ -93,6 +93,32 @@ async def test_listen_streams_ack_then_filtered_events(async_client):
         await stream.aclose()
 
 
+@pytest.mark.anyio
+async def test_unconsumed_stream_close_cancels_dispatch(async_client):
+    """Closing the response without reading any frame must not leak tasks.
+
+    A client that disconnects before the first frame leaves the stream
+    generator unstarted, so its ``finally`` never runs -- only the
+    response's close hook can cancel the dispatch task.
+    """
+    tasks_before = asyncio.all_tasks()
+
+    response = await async_client.post(
+        MCP_URL, data=listen_body(), content_type="application/json", headers=LISTEN_HEADERS
+    )
+    assert response.status_code == 200
+
+    response.close()
+
+    lingering: set[asyncio.Task[object]] = set()
+    for _ in range(50):
+        lingering = {task for task in asyncio.all_tasks() - tasks_before if not task.done()}
+        if not lingering:
+            break
+        await asyncio.sleep(0.01)
+    assert not lingering, f"dispatch leaked: {lingering}"
+
+
 def test_listen_under_wsgi_is_refused(client):
     """A WSGI deployment cannot hold a live stream, and says so.
 

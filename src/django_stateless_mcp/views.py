@@ -103,6 +103,26 @@ class _ASGIResponse:
         return response
 
 
+class _ListenStreamResponse(StreamingHttpResponse):
+    """A streamed listen response that cancels its dispatch when closed.
+
+    The generator's ``finally`` covers a stream that was consumed -- but a
+    client that disconnects before the first frame leaves the generator
+    unstarted, and an unstarted generator's ``finally`` never runs. Django
+    closes every response either way, so the ``close`` hook is what
+    guarantees the dispatch task cannot leak.
+    """
+
+    def __init__(self, streaming_content: AsyncIterator[bytes], status: int, dispatch_task: asyncio.Task[None]) -> None:
+        super().__init__(streaming_content, status=status)
+        self._dispatch_task = dispatch_task
+
+    def close(self) -> None:
+        """Cancel the dispatch (a no-op if it already finished) and close."""
+        self._dispatch_task.cancel()
+        super().close()
+
+
 def _streamed_response(
     start: MutableMapping[str, Any],
     messages: MemoryObjectReceiveStream[MutableMapping[str, Any]],
@@ -124,7 +144,7 @@ def _streamed_response(
             with contextlib.suppress(asyncio.CancelledError):
                 await dispatch_task
 
-    response = StreamingHttpResponse(stream_body(), status=start["status"])
+    response = _ListenStreamResponse(stream_body(), start["status"], dispatch_task)
     for name, value in start.get("headers", []):
         if name.lower() in _SKIPPED_RESPONSE_HEADERS:
             continue
@@ -243,6 +263,13 @@ class _StatelessBridge:
         except anyio.EndOfStream:
             await dispatch_task
             raise RuntimeError("The MCP handler returned no HTTP response.") from None
+        except BaseException:
+            # Cancelled while waiting (client already gone): take the
+            # dispatch down with us or it outlives the request.
+            dispatch_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await dispatch_task
+            raise
 
         return _streamed_response(start, message_receive, dispatch_task)
 

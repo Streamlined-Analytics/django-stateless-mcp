@@ -15,9 +15,13 @@ Everything below is a walkthrough you can reproduce end to end; each step was ru
 ## 1. Run the server
 
 ```sh
-just demo-asgi   # migrate + seed + uvicorn with FOUR worker processes on :8000
-just demo        # the same project under WSGI (single-process dev server)
+just demo-asgi      # migrate + seed + uvicorn with FOUR worker processes on :8000
+just demo-gunicorn  # the same fleet under WSGI gunicorn, four workers on :8000
+just demo           # the same project under WSGI (single-process dev server)
 ```
+
+Everything below works identically against either fleet — connect Inspector to whichever is running and watch `worker_pid` and the structlog output to see which processes serve.
+The automated version of the fleet proofs is `just multiworker` (ADR-0019): it boots both fleets itself and asserts the kill-the-fleet elicitation resume, so you only need the demo targets for interactive testing.
 
 Seeding creates `mcp-test-user`, the user the bearer endpoints resolve the demo token to.
 The bearer token `good-token` is a published demo constant, not a secret.

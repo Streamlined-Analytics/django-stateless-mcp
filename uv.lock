@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-07-23T12:07:41.211736125Z"
+exclude-newer = "2026-07-23T14:18:28.610689708Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -463,12 +463,14 @@ structlog = [
 dev = [
     { name = "coverage" },
     { name = "django-stubs" },
+    { name = "gunicorn" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "ruff" },
     { name = "structlog" },
+    { name = "uvicorn" },
 ]
 docs = [
     { name = "mkdocs" },
@@ -481,9 +483,11 @@ lint = [
 ]
 test = [
     { name = "coverage" },
+    { name = "gunicorn" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "structlog" },
+    { name = "uvicorn" },
 ]
 typecheck = [
     { name = "django-stubs" },
@@ -502,12 +506,14 @@ provides-extras = ["structlog"]
 dev = [
     { name = "coverage" },
     { name = "django-stubs" },
+    { name = "gunicorn" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "ruff" },
     { name = "structlog" },
+    { name = "uvicorn" },
 ]
 docs = [
     { name = "mkdocs", specifier = "<2" },
@@ -520,9 +526,11 @@ lint = [
 ]
 test = [
     { name = "coverage" },
+    { name = "gunicorn" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "structlog" },
+    { name = "uvicorn" },
 ]
 typecheck = [
     { name = "django-stubs" },
@@ -585,6 +593,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/33/e4/8d187ea29c2e30b3a09505c567513077d6117861bde1fbd997a167f262ec/griffelib-2.1.0.tar.gz", hash = "sha256:762a186d2c6fd6794d4ea20d428d597ffb857cb56b66421651cbba15bdd5e813", size = 216234, upload-time = "2026-06-19T12:05:42.278Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/d3/5268aeabf2ad82658c4e2ff3a060648d0f02f3926cb53247c0e4d0dab49e/griffelib-2.1.0-py3-none-any.whl", hash = "sha256:cc7b3d2d2865ad0b909fcc38086e3f554b5ea7acbaa7bbb7ecaa3f5dfb7d9f00", size = 142560, upload-time = "2026-06-19T12:05:38.742Z" },
+]
+
+[[package]]
+name = "gunicorn"
+version = "26.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/b7/a4a3f632f823e432ce6bc65f62961b7980c898c77f075a2f7118cb3846fe/gunicorn-26.0.0.tar.gz", hash = "sha256:ca9346f85e3a4aeeb64d491045c16b9a35647abd37ea15efe53080eb8b090baf", size = 727286, upload-time = "2026-05-05T06:38:25.529Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e6/40/9c2384fc2be4ad25dd4a49decd5ad9ea5a3639814c11bd40ab77cb9f0a14/gunicorn-26.0.0-py3-none-any.whl", hash = "sha256:40233d26a5f0d1872916188c276e21641155111c2853f0c2cd55260aec0d24fc", size = 212009, upload-time = "2026-05-05T06:38:23.007Z" },
 ]
 
 [[package]]

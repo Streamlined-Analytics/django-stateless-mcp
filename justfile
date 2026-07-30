@@ -72,6 +72,16 @@ demo-asgi:
     uv run python manage.py seed
     uv run --with uvicorn uvicorn example.asgi:application --workers 4
 
+# Run the example project under WSGI gunicorn with four workers (the classic fleet)
+demo-gunicorn:
+    uv run python manage.py migrate
+    uv run python manage.py seed
+    uv run --with gunicorn gunicorn example.wsgi:application --workers 4 --bind 127.0.0.1:8000
+
+# Prove horizontal scaling against real uvicorn and gunicorn fleets
+multiworker:
+    MULTIWORKER=1 uv run pytest tests/test_multiworker.py -v
+
 # Run the MCP conformance suite against the fixture server
 conformance:
     CONFORMANCE_PKG="@modelcontextprotocol/conformance@0.2.0-alpha.10" ./scripts/run_conformance.sh --suite all --spec-version 2026-07-28 --expected-failures .github/conformance/expected-failures.2026-07-28.yml

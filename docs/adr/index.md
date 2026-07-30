@@ -28,3 +28,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0016](0016-lazy-optional-structlog-import.md) | Lazy import for the optional structlog dependency |
 | [ADR-0017](0017-post-only-view.md) | The view serves POST only; receive follows the ASGI contract |
 | [ADR-0018](0018-example-auth-middleware.md) | The example carries the standard middleware; the view is CSRF-exempt |
+| [ADR-0019](0019-multiworker-harness.md) | Out-of-process multi-worker test harness |

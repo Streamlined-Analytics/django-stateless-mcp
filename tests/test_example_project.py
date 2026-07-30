@@ -50,6 +50,27 @@ def test_seed_is_idempotent():
     assert User.objects.filter(username="mcp-test-user").count() == 1
 
 
+@pytest.mark.django_db
+def test_current_username_is_anonymous_on_the_open_endpoint(client):
+    """A .user tool on the open endpoint sees AnonymousUser, not a crash.
+
+    Found live in Inspector: without AuthenticationMiddleware the request has
+    no ``user`` attribute at all, so ``current_username`` raised
+    ``AttributeError`` on ``/mcp/``. The example now carries the standard auth
+    middleware a real project would, and the anonymous username is ``""``.
+    """
+    response = client.post(
+        MCP_URL,
+        data=request_body("tools/call", {"name": "current_username", "arguments": {}}),
+        content_type="application/json",
+        headers=MCP_HEADERS,
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["isError"] is False
+    assert result["structuredContent"] == {"result": ""}
+
+
 def test_worker_pid_reports_the_serving_process(client):
     """The demo tool names the pid serving the call — here, the test process."""
     response = client.post(

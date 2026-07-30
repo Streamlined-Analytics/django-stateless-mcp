@@ -116,6 +116,13 @@ in any global.
 Off the request path (for example calling a tool directly in a unit test) it
 raises `LookupError` instead of returning `None`.
 
+`request.user` exists only where something sets it: Django's
+`AuthenticationMiddleware` (which gives `AnonymousUser` on unauthenticated
+calls), or `mcp_view(user_resolver=…)` resolving it from the verified token.
+On a project with neither, a tool touching `.user` raises `AttributeError` —
+keep the standard auth middleware in `MIDDLEWARE`, as any conventional Django
+project does.
+
 ## Sync tools and the ORM
 
 Plain `def` tools are run by the SDK in a worker thread, off the event loop, so

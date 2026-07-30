@@ -34,9 +34,18 @@ ROOT_URLCONF = "example.urls"
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
+    "django.contrib.sessions",
     "django_stateless_mcp",
     # An installed app with an mcp.py, so autodiscovery has something to find.
     "example",
+]
+
+# The standard auth stack a real project carries. Without it request.user does
+# not exist, so a tool touching it crashes on the open endpoints instead of
+# seeing AnonymousUser. See ADR-0018.
+MIDDLEWARE = [
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
 ]
 
 USE_TZ = True

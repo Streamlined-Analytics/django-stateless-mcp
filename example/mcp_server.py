@@ -97,6 +97,7 @@ def request_path(ctx: Context) -> str:
 @server.tool()
 def count_users(ctx: Context) -> int:
     """Count users via the ORM, exercising sync DB access in a tool."""
+    # Raises LookupError off the view path; asserts the context wiring works.
     django_request(ctx)
     return User.objects.count()
 
@@ -122,7 +123,7 @@ async def resolve_stub_user(token: str) -> User | None:
 
 
 @server.tool()
-def token_client(ctx: Context) -> str:
+def token_client() -> str:
     """Name the OAuth client the SDK sees for this call."""
     access_token = get_access_token()
     return access_token.client_id if access_token else "anonymous"

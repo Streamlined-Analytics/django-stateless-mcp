@@ -153,6 +153,38 @@ runs on a different connection than the test — use
 `pytest.mark.django_db(transaction=True)` so fixture rows are committed and
 visible to it.
 
+## Subscription streams
+
+On the 2026-07-28 wire there is no standing GET stream: a client opts in to
+server events by POSTing `subscriptions/listen`, and **the response is the
+stream** (SEP-2575).
+The view serves it under **ASGI**: the SDK acknowledges first, then delivers
+the requested event kinds as SSE frames until the client disconnects.
+Under **WSGI** the view answers `501` instead — a live stream would pin a
+worker for its whole lifetime, which is exactly the per-flow cost this package
+exists to remove; request/response MCP is identical under both deployment
+models, subscription streams are the one ASGI-only feature.
+
+Publishing events is the SDK's seam, not this package's: pass a
+`SubscriptionBus` to your server and publish to it —
+
+```python
+from mcp.server.mcpserver import MCPServer
+from mcp.server.subscriptions import InMemorySubscriptionBus, ToolsListChanged
+
+bus = InMemorySubscriptionBus()
+server = MCPServer(name="my-server", subscriptions=bus)
+
+
+async def on_tools_changed() -> None:
+    await bus.publish(ToolsListChanged())
+```
+
+The in-memory bus reaches only streams held by the worker that published.
+On a multi-worker fleet, implement `SubscriptionBus` over an external pub/sub
+backend (Redis, NATS, …) so events fan out across replicas — the SDK protocol
+is two methods, `publish` and `subscribe`.
+
 ## Requiring bearer authentication
 
 Pass the SDK's `TokenVerifier` protocol to `mcp_view()` and the endpoint

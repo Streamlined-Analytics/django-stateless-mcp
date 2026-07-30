@@ -14,9 +14,10 @@ if (: > "/dev/tcp/127.0.0.1/${PORT}") 2>/dev/null; then
     exit 1
 fi
 
-echo "Starting Django fixture server on port ${PORT}..."
-DJANGO_SETTINGS_MODULE=example.settings PYTHONPATH=. \
-    uv run python -m django runserver "127.0.0.1:${PORT}" --noreload &
+echo "Starting example ASGI server on port ${PORT}..."
+# ASGI, not runserver: subscription streams (subscriptions/listen) are
+# ASGI-only, and the suite's server-stateless scenario exercises them.
+uv run uvicorn example.asgi:application --host 127.0.0.1 --port "${PORT}" --log-level warning &
 SERVER_PID=$!
 
 cleanup() {

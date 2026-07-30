@@ -40,9 +40,7 @@ INSTALLED_APPS = [
     "example",
 ]
 
-# The standard stack a real project carries. Without it request.user does not
-# exist (a tool touching it crashes instead of seeing AnonymousUser), and CSRF
-# enforcement never exercises the view's exemption. See ADR-0018.
+# The standard stack a real project carries; without it request.user does not exist. See ADR-0018.
 MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

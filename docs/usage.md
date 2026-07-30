@@ -148,6 +148,11 @@ def open_orders(ctx: Context) -> int:
 `SynchronousOnlyOperation`; wrap ORM work in `asgiref.sync.sync_to_async`
 there, or keep database tools synchronous.
 
+Connections opened by sync tools live in the SDK's worker threads, outside
+Django's per-request cleanup; the view recycles them there after each request
+with Django's own `close_old_connections`, so `CONN_MAX_AGE` and
+`CONN_HEALTH_CHECKS` behave exactly as they do for ordinary views.
+
 When testing tools that write and read the database, remember the tool's query
 runs on a different connection than the test — use
 `pytest.mark.django_db(transaction=True)` so fixture rows are committed and

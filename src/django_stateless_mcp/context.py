@@ -10,8 +10,7 @@ if TYPE_CHECKING:
 
 __all__ = ["django_request"]
 
-# The one key under which the view stores the HttpRequest on the transport
-# scope. views, auth and permissions all import it from here.
+# The one transport-scope key for the HttpRequest; views, auth and permissions import it from here.
 _DJANGO_REQUEST_KEY = "django_request"
 
 _MISSING_REQUEST_MESSAGE = "No Django request on this MCP call; it did not arrive through mcp_view()."

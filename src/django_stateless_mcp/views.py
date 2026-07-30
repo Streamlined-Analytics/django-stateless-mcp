@@ -36,8 +36,7 @@ __all__ = ["mcp_view"]
 # Django sets Content-Length itself; echoing the SDK's risks a mismatch.
 _SKIPPED_RESPONSE_HEADERS = frozenset({b"content-length"})
 
-# The one method whose response is a live stream (SEP-2575), routed by the
-# spec's required mcp-method header so the request body is never parsed here.
+# The one method whose response is a live stream, routed by header so the body is never parsed. See ADR-0020.
 _LISTEN_METHOD = "subscriptions/listen"
 _MCP_METHOD_HEADER = "mcp-method"
 _STREAM_BUFFER_MESSAGES = 64
@@ -202,8 +201,7 @@ class _StatelessBridge:
         body_delivered = False
 
         async def receive() -> MutableMapping[str, Any]:
-            # After the buffered body there is only disconnect; repeating the
-            # body message spins SSE disconnect-listeners forever. See ADR-0017.
+            # Body once, then disconnect -- a repeated body spins SSE disconnect-listeners forever. See ADR-0017.
             nonlocal body_delivered
             if body_delivered:
                 return {"type": "http.disconnect"}
@@ -211,14 +209,13 @@ class _StatelessBridge:
             return {"type": "http.request", "body": body, "more_body": False}
 
         session_manager = self._new_session_manager()
-        with access_token_context(scope):
-            async with session_manager.run():
-                await session_manager.handle_request(scope, receive, response.send)
-        # Sync tools run in anyio's worker threads, where Django's own
-        # request_finished cleanup never reaches; recycle those connections
-        # where they live. LIFO reuse makes this land on the thread that just
-        # served the tool. See ADR-0021.
-        await anyio.to_thread.run_sync(close_old_connections)
+        try:
+            with access_token_context(scope):
+                async with session_manager.run():
+                    await session_manager.handle_request(scope, receive, response.send)
+        finally:
+            # Django's request_finished never reaches anyio's tool threads; recycle there. See ADR-0021.
+            await anyio.to_thread.run_sync(close_old_connections)
         return response.to_django()
 
     async def _handle_listen(self, request: HttpRequest, scope: MutableMapping[str, Any]) -> StreamingHttpResponse:
@@ -237,9 +234,7 @@ class _StatelessBridge:
         parked = asyncio.Event()
 
         async def receive() -> MutableMapping[str, Any]:
-            # The body once, then park on a never-set event: the stream ends
-            # by cancellation from the response side, never by a synthesized
-            # disconnect.
+            # Body once, then park -- the stream ends by cancellation, never a synthesized disconnect. See ADR-0020.
             nonlocal body_delivered
             if body_delivered:
                 await parked.wait()
@@ -271,8 +266,7 @@ class _StatelessBridge:
             await dispatch_task
             raise RuntimeError("The MCP handler returned no HTTP response.") from None
         except BaseException:
-            # Cancelled while waiting (client already gone): take the
-            # dispatch down with us or it outlives the request.
+            # Cancelled while waiting (client already gone): take the dispatch down or it outlives the request.
             dispatch_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await dispatch_task

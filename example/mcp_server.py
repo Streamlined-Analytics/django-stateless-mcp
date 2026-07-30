@@ -34,8 +34,7 @@ def _delete_widget_visible(user: AbstractBaseUser | AnonymousUser, tool_name: st
     return isinstance(user, PermissionsMixin) and user.has_perm("auth.delete_user")
 
 
-# In-process bus: fine for one instance (and the conformance suite); a real
-# fleet fans subscription events out via an external bus (Redis, NATS, ...).
+# In-process bus: one instance only; a real fleet supplies an external bus. See ADR-0020.
 subscription_bus = InMemorySubscriptionBus()
 
 server = MCPServer(

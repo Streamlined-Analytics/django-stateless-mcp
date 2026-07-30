@@ -5,9 +5,6 @@ server:
   # Deliberate deviation: Django's ALLOWED_HOSTS owns host validation (ADR-0007).
   - dns-rebinding-protection
 
-  # Deferred feature: subscriptions/listen needs SSE streaming (ADR-0007, ADR-0008).
-  - server-stateless
-
   # Fixture gaps: tests/mcp_server.py lacks the scenario's test_* tools; close per phase.
   - completion-complete
   - tools-call-image

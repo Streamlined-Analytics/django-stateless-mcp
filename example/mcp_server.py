@@ -14,6 +14,7 @@ from django.contrib.auth.models import (
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 from mcp.server.mcpserver import Context, MCPServer
+from mcp.server.subscriptions import InMemorySubscriptionBus, PromptsListChanged, ToolsListChanged
 
 from django_stateless_mcp import (
     PermittedToolsFilter,
@@ -31,11 +32,16 @@ def _delete_widget_visible(user: AbstractBaseUser | AnonymousUser, tool_name: st
     return isinstance(user, PermissionsMixin) and user.has_perm("auth.delete_user")
 
 
+# In-process bus: fine for one instance (and the conformance suite); a real
+# fleet fans subscription events out via an external bus (Redis, NATS, ...).
+subscription_bus = InMemorySubscriptionBus()
+
 server = MCPServer(
     name="test-server",
     version="0.0.1",
     request_state_security=request_state_security(),
     middleware=[StructlogRequestLogger()],
+    subscriptions=subscription_bus,
 )
 
 # A server that filters tool visibility by permission.
@@ -86,6 +92,20 @@ def worker_pid() -> int:
     on another, because no worker holds any per-flow state.
     """
     return os.getpid()
+
+
+@server.tool()
+async def test_trigger_tool_change() -> str:
+    """Publish a tools-list-changed event onto open subscription streams."""
+    await subscription_bus.publish(ToolsListChanged())
+    return "tools list change published"
+
+
+@server.tool()
+async def test_trigger_prompt_change() -> str:
+    """Publish a prompts-list-changed event onto open subscription streams."""
+    await subscription_bus.publish(PromptsListChanged())
+    return "prompts list change published"
 
 
 @server.tool()

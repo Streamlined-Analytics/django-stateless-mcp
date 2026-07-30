@@ -168,6 +168,27 @@ mcp.request.completed … method=tools/call exit=input_required
 mcp.request.completed … method=tools/call exit=completed
 ```
 
+## Watch a subscription stream (ASGI only)
+
+`subscriptions/listen`'s POST response is a live SSE stream (SEP-2575).
+Open one with curl against the ASGI demo, then trigger an event from a second terminal and watch the frame arrive:
+
+```sh
+curl -N -X POST http://127.0.0.1:8000/mcp/ \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'mcp-protocol-version: 2026-07-28' \
+  -H 'mcp-method: subscriptions/listen' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"subscriptions/listen",
+       "params":{"notifications":{"toolsListChanged":true},
+                 "_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+                          "io.modelcontextprotocol/clientCapabilities":{}}}}'
+```
+
+The first frame is the acknowledgement; then, from another terminal, call the `test_trigger_tool_change` tool (any client — Inspector works) and a `notifications/tools/list_changed` frame appears on the open stream.
+Under `just demo` (WSGI) the same request gets an explicit `501` — live streams need ASGI ([ADR-0020](../docs/adr/0020-subscription-streams.md)).
+Note the in-memory bus is per-process: under the 4-worker demo, the trigger only reaches streams held by the worker that serves it, which is itself a good demonstration of why a real fleet wires an external `SubscriptionBus`.
+
 ## Tools worth trying
 
 - `add`, `multiply` — plain tools (`multiply` arrives via `mcp.py` autodiscovery).

@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import json
 import threading
+from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
-from django.http import HttpResponse, HttpResponseNotAllowed
+import anyio
+from django.core.handlers.asgi import ASGIRequest
+from django.http import HttpResponse, HttpResponseBase, HttpResponseNotAllowed, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from mcp.server.transport_security import TransportSecuritySettings
 
@@ -13,8 +19,9 @@ from django_stateless_mcp.auth import BearerAuthenticator, access_token_context
 from django_stateless_mcp.context import _DJANGO_REQUEST_KEY
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine, MutableMapping, Sequence
+    from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
 
+    from anyio.streams.memory import MemoryObjectReceiveStream
     from django.http import HttpRequest
     from mcp.server.auth.provider import TokenVerifier
     from mcp.server.mcpserver import MCPServer
@@ -27,9 +34,30 @@ __all__ = ["mcp_view"]
 # Django sets Content-Length itself; echoing the SDK's risks a mismatch.
 _SKIPPED_RESPONSE_HEADERS = frozenset({b"content-length"})
 
+# The one method whose response is a live stream (SEP-2575), routed by the
+# spec's required mcp-method header so the request body is never parsed here.
+_LISTEN_METHOD = "subscriptions/listen"
+_MCP_METHOD_HEADER = "mcp-method"
+_STREAM_BUFFER_MESSAGES = 64
+
 # Django's ALLOWED_HOSTS owns host validation; a second allowlist here would be
 # a conflicting source of truth over a scope we synthesise. See ADR-0007.
 _TRANSPORT_SECURITY = TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+
+def _listen_needs_asgi() -> HttpResponse:
+    """Refuse a subscription stream on a deployment that cannot hold one.
+
+    Under WSGI a live stream would pin a worker for its whole lifetime --
+    the per-flow resource tax this package exists to remove -- and Django
+    cannot iterate the bridge's async stream outside the request's event
+    loop there. Deploy under ASGI for subscription streams. See ADR-0020.
+    """
+    payload = {
+        "error": "unsupported_deployment",
+        "error_description": "subscriptions/listen streams require an ASGI deployment.",
+    }
+    return HttpResponse(json.dumps(payload), status=501, content_type="application/json")
 
 
 def _port(request: HttpRequest) -> int | None:
@@ -75,6 +103,35 @@ class _ASGIResponse:
         return response
 
 
+def _streamed_response(
+    start: MutableMapping[str, Any],
+    messages: MemoryObjectReceiveStream[MutableMapping[str, Any]],
+    dispatch_task: asyncio.Task[None],
+) -> StreamingHttpResponse:
+    """Relay a live dispatch's ASGI body messages as a streaming response.
+
+    Closing the response -- Django does so when the client disconnects --
+    cancels the dispatch, which is the SDK's documented end-of-stream signal.
+    """
+
+    async def stream_body() -> AsyncIterator[bytes]:
+        try:
+            async for message in messages:
+                if message["type"] == "http.response.body" and message.get("body"):
+                    yield bytes(message["body"])
+        finally:
+            dispatch_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await dispatch_task
+
+    response = StreamingHttpResponse(stream_body(), status=start["status"])
+    for name, value in start.get("headers", []):
+        if name.lower() in _SKIPPED_RESPONSE_HEADERS:
+            continue
+        response[name.decode("latin-1")] = value.decode("latin-1")
+    return response
+
+
 class _StatelessBridge:
     """Runs one Django request through the SDK's ASGI handler.
 
@@ -91,16 +148,33 @@ class _StatelessBridge:
         self._authenticator = authenticator
         self._construction_lock = threading.Lock()
 
-    async def handle(self, request: HttpRequest) -> HttpResponse:
+    async def handle(self, request: HttpRequest) -> HttpResponseBase:
         """Dispatch ``request`` to the SDK and return its response.
 
         Only POST is served: a stateless exchange is one request and one
-        response, so the transport's GET/DELETE session machinery (the SSE
+        response, so the transport's GET/DELETE session machinery (the GET
         listen stream, session termination) has nothing to attach to here.
+        The one streamed exchange -- ``subscriptions/listen``, whose POST
+        response is itself the stream (SEP-2575) -- is routed by the spec's
+        required ``mcp-method`` header. See ADR-0020.
         """
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
 
+        scope = self._build_scope(request)
+        if self._authenticator is not None:
+            challenge = await self._authenticator.authenticate(scope)
+            if challenge is not None:
+                return challenge
+
+        if request.headers.get(_MCP_METHOD_HEADER, "").strip().lower() == _LISTEN_METHOD:
+            if not isinstance(request, ASGIRequest):
+                return _listen_needs_asgi()
+            return await self._handle_listen(request, scope)
+        return await self._handle_buffered(request, scope)
+
+    async def _handle_buffered(self, request: HttpRequest, scope: MutableMapping[str, Any]) -> HttpResponse:
+        """Run one complete exchange and return the whole response at once."""
         body = request.body
         response = _ASGIResponse()
         body_delivered = False
@@ -114,19 +188,65 @@ class _StatelessBridge:
             body_delivered = True
             return {"type": "http.request", "body": body, "more_body": False}
 
-        scope = self._build_scope(request)
-        if self._authenticator is not None:
-            challenge = await self._authenticator.authenticate(scope)
-            if challenge is not None:
-                return challenge
-
         session_manager = self._new_session_manager()
         with access_token_context(scope):
             async with session_manager.run():
                 await session_manager.handle_request(scope, receive, response.send)
         return response.to_django()
 
-    def _new_session_manager(self) -> StreamableHTTPSessionManager:
+    async def _handle_listen(self, request: HttpRequest, scope: MutableMapping[str, Any]) -> StreamingHttpResponse:
+        """Serve ``subscriptions/listen``: the response is a live SSE stream.
+
+        The SDK's handler streams until the client goes away, so the dispatch
+        cannot be buffered: it runs as a background task that owns the whole
+        session-manager lifecycle (anyio task groups must enter and exit in
+        one task), while the returned ``StreamingHttpResponse`` relays its
+        ASGI messages. Closing the response -- Django does so when the client
+        disconnects -- cancels the dispatch, which is the SDK's documented
+        end-of-stream signal.
+        """
+        body = request.body
+        body_delivered = False
+        parked = asyncio.Event()
+
+        async def receive() -> MutableMapping[str, Any]:
+            # The body once, then park on a never-set event: the stream ends
+            # by cancellation from the response side, never by a synthesized
+            # disconnect.
+            nonlocal body_delivered
+            if body_delivered:
+                await parked.wait()
+            body_delivered = True
+            return {"type": "http.request", "body": body, "more_body": False}
+
+        message_send, message_receive = anyio.create_memory_object_stream[MutableMapping[str, Any]](
+            _STREAM_BUFFER_MESSAGES
+        )
+
+        async def forward(message: MutableMapping[str, Any]) -> None:
+            await message_send.send(message)
+
+        session_manager = self._new_session_manager(json_response=False)
+
+        async def dispatch() -> None:
+            try:
+                with access_token_context(scope):
+                    async with session_manager.run():
+                        await session_manager.handle_request(scope, receive, forward)
+            finally:
+                message_send.close()
+
+        dispatch_task = asyncio.create_task(dispatch())
+
+        try:
+            start = await message_receive.receive()
+        except anyio.EndOfStream:
+            await dispatch_task
+            raise RuntimeError("The MCP handler returned no HTTP response.") from None
+
+        return _streamed_response(start, message_receive, dispatch_task)
+
+    def _new_session_manager(self, *, json_response: bool = True) -> StreamableHTTPSessionManager:
         """Build a fresh session manager for this request.
 
         ``streamable_http_app()`` both constructs the manager and stores it on
@@ -136,7 +256,7 @@ class _StatelessBridge:
         with self._construction_lock:
             self._server.streamable_http_app(
                 stateless_http=True,
-                json_response=True,
+                json_response=json_response,
                 transport_security=_TRANSPORT_SECURITY,
             )
             return self._server.session_manager
@@ -168,7 +288,7 @@ def mcp_view(
     token_verifier: TokenVerifier | None = None,
     required_scopes: Sequence[str] = (),
     user_resolver: UserResolver | None = None,
-) -> Callable[[HttpRequest], Coroutine[Any, Any, HttpResponse]]:
+) -> Callable[[HttpRequest], Coroutine[Any, Any, HttpResponseBase]]:
     """Return a Django view serving ``server`` over stateless streamable HTTP.
 
     Mount the returned view in a URLconf::
@@ -217,7 +337,7 @@ def mcp_view(
     )
     bridge = _StatelessBridge(server, authenticator)
 
-    async def view(request: HttpRequest) -> HttpResponse:
+    async def view(request: HttpRequest) -> HttpResponseBase:
         return await bridge.handle(request)
 
     return csrf_exempt(view)

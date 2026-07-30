@@ -46,9 +46,12 @@ dev = [
 ]
 test = [
   "coverage",
+  # gunicorn + uvicorn boot the real multi-worker fleets in test_multiworker.
+  "gunicorn",
   "pytest",
   "pytest-django",
   "structlog",
+  "uvicorn",
 ]
 docs = [
   # MkDocs 2.0 breaks all plugins and themes, no migration path. See ADR-0002.

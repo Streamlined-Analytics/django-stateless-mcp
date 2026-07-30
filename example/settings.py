@@ -34,9 +34,19 @@ ROOT_URLCONF = "example.urls"
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
+    "django.contrib.sessions",
     "django_stateless_mcp",
     # An installed app with an mcp.py, so autodiscovery has something to find.
     "example",
+]
+
+# The standard stack a real project carries. Without it request.user does not
+# exist (a tool touching it crashes instead of seeing AnonymousUser), and CSRF
+# enforcement never exercises the view's exemption. See ADR-0018.
+MIDDLEWARE = [
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
 ]
 
 USE_TZ = True

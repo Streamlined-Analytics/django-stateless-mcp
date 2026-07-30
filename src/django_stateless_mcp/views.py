@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from mcp.server.transport_security import TransportSecuritySettings
 
 from django_stateless_mcp.auth import BearerAuthenticator, access_token_context
+from django_stateless_mcp.context import _DJANGO_REQUEST_KEY
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine, MutableMapping, Sequence
@@ -157,7 +158,7 @@ class _StatelessBridge:
             "client": (request.META.get("REMOTE_ADDR", ""), 0),
             "server": (request.META.get("SERVER_NAME", ""), _port(request)),
             # The transport carries this to django_request(); no global state.
-            "state": {"django_request": request},
+            "state": {_DJANGO_REQUEST_KEY: request},
         }
 
 
@@ -205,7 +206,8 @@ def mcp_view(
     without a ``token_verifier`` -- both are meaningless without authentication,
     and silently ignoring them would leave the endpoint unexpectedly open.
     """
-    if token_verifier is None and (user_resolver is not None or required_scopes):
+    auth_features_requested = user_resolver is not None or bool(required_scopes)
+    if token_verifier is None and auth_features_requested:
         raise ValueError(
             "user_resolver and required_scopes require a token_verifier; "
             "without one the endpoint is unauthenticated and they are ignored."

@@ -10,7 +10,11 @@ if TYPE_CHECKING:
 
 __all__ = ["django_request"]
 
-_STATE_KEY = "django_request"
+# The one key under which the view stores the HttpRequest on the transport
+# scope. views, auth and permissions all import it from here.
+_DJANGO_REQUEST_KEY = "django_request"
+
+_MISSING_REQUEST_MESSAGE = "No Django request on this MCP call; it did not arrive through mcp_view()."
 
 
 def django_request(context: Context[Any, Any]) -> HttpRequest:
@@ -31,10 +35,10 @@ def django_request(context: Context[Any, Any]) -> HttpRequest:
     try:
         request_context = context.request_context
     except ValueError as error:
-        raise LookupError("No Django request on this MCP call; it did not arrive through mcp_view().") from error
+        raise LookupError(_MISSING_REQUEST_MESSAGE) from error
     transport_request = getattr(request_context, "request", None)
-    state = getattr(transport_request, "state", None)
-    http_request: HttpRequest | None = getattr(state, _STATE_KEY, None)
+    transport_state = getattr(transport_request, "state", None)
+    http_request: HttpRequest | None = getattr(transport_state, _DJANGO_REQUEST_KEY, None)
     if http_request is None:
-        raise LookupError("No Django request on this MCP call; it did not arrive through mcp_view().")
+        raise LookupError(_MISSING_REQUEST_MESSAGE)
     return http_request

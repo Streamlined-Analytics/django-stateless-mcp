@@ -11,6 +11,8 @@ from mcp.server.auth.middleware.auth_context import auth_context_var
 from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser, BearerAuthBackend
 from starlette.requests import HTTPConnection
 
+from django_stateless_mcp.context import _DJANGO_REQUEST_KEY
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Iterator, MutableMapping, Sequence
 
@@ -20,8 +22,6 @@ if TYPE_CHECKING:
     UserResolver = Callable[[str], Awaitable[AbstractBaseUser | AnonymousUser | None]]
 
 __all__ = ["BearerAuthenticator", "access_token_context"]
-
-_DJANGO_REQUEST_KEY = "django_request"
 
 
 @contextlib.contextmanager

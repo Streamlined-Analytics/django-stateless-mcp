@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 from asgiref.sync import sync_to_async
 
+from django_stateless_mcp.context import _DJANGO_REQUEST_KEY
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -23,8 +25,10 @@ def _request_user(ctx: ServerRequestContext[Any, Any]) -> AbstractBaseUser | Ano
     """Return the Django user on the request, or an anonymous user."""
     from django.contrib.auth.models import AnonymousUser
 
-    request = getattr(getattr(ctx, "request", None), "state", None)
-    user = getattr(getattr(request, "django_request", None), "user", None)
+    transport_request = getattr(ctx, "request", None)
+    transport_state = getattr(transport_request, "state", None)
+    http_request = getattr(transport_state, _DJANGO_REQUEST_KEY, None)
+    user = getattr(http_request, "user", None)
     if user is None:
         return AnonymousUser()
     return cast("AbstractBaseUser | AnonymousUser", user)

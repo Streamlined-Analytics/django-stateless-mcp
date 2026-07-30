@@ -26,3 +26,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0014](0014-user-and-tool-permissions.md) | Resolve the Django user in tools; filter tools/list by permission |
 | [ADR-0015](0015-runnable-example-project.md) | One runnable example project, shared with the test suite |
 | [ADR-0016](0016-lazy-optional-structlog-import.md) | Lazy import for the optional structlog dependency |
+| [ADR-0017](0017-post-only-view.md) | The view serves POST only; receive follows the ASGI contract |

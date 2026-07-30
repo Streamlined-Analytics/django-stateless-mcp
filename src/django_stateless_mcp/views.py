@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING, Any
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotAllowed
 from mcp.server.transport_security import TransportSecuritySettings
 
 from django_stateless_mcp.auth import BearerAuthenticator, access_token_context
@@ -90,11 +90,26 @@ class _StatelessBridge:
         self._construction_lock = threading.Lock()
 
     async def handle(self, request: HttpRequest) -> HttpResponse:
-        """Dispatch ``request`` to the SDK and return its response."""
+        """Dispatch ``request`` to the SDK and return its response.
+
+        Only POST is served: a stateless exchange is one request and one
+        response, so the transport's GET/DELETE session machinery (the SSE
+        listen stream, session termination) has nothing to attach to here.
+        """
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+
         body = request.body
         response = _ASGIResponse()
+        body_delivered = False
 
         async def receive() -> MutableMapping[str, Any]:
+            # After the buffered body there is only disconnect; repeating the
+            # body message spins SSE disconnect-listeners forever. See ADR-0017.
+            nonlocal body_delivered
+            if body_delivered:
+                return {"type": "http.disconnect"}
+            body_delivered = True
             return {"type": "http.request", "body": body, "more_body": False}
 
         scope = self._build_scope(request)
@@ -169,6 +184,11 @@ def mcp_view(
     Pass a ``user_resolver`` -- an async ``(token) -> user`` -- to set
     ``request.user`` from the verified token, so tools can permission-check with
     ``django_request(ctx).user.has_perm(...)``. Requires ``token_verifier``.
+
+    The view serves POST only -- the entire stateless exchange -- and answers
+    anything else with ``405 Method Not Allowed``. The transport's GET listen
+    stream and DELETE session termination presuppose a session, which is
+    exactly what this view does not have.
 
     The view is asynchronous, so it runs natively under ASGI. Django starts an
     event loop per request under WSGI, so one view serves both deployments.

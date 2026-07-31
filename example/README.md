@@ -18,7 +18,11 @@ Everything below is a walkthrough you can reproduce end to end; each step was ru
 just demo-asgi      # migrate + seed + uvicorn with FOUR worker processes on :8000
 just demo-gunicorn  # the same fleet under WSGI gunicorn, four workers on :8000
 just demo           # the same project under WSGI (single-process dev server)
+docker compose up   # the demo-asgi fleet in a container (just demo-docker rebuilds first)
 ```
+
+The Docker variant bind-mounts `example/`, so it shares `db.sqlite3` with the host — the host-run `seed --grant-delete` / `--revoke-delete` commands below reach the containerized fleet unchanged.
+(No local uv? Run them in the container instead: `docker compose exec demo python manage.py seed --grant-delete`.)
 
 Everything below works identically against either fleet — connect Inspector to whichever is running and watch `worker_pid` and the structlog output to see which processes serve.
 The automated version of the fleet proofs is `just multiworker` (ADR-0019): it boots both fleets itself and asserts the kill-the-fleet elicitation resume, so you only need the demo targets for interactive testing.

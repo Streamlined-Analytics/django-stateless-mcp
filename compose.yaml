@@ -1,0 +1,14 @@
+services:
+  demo:
+    build: .
+    # Run as the host user so the bind-mounted db.sqlite3 stays host-writable.
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Shares example/db.sqlite3, so host-run `manage.py seed --grant-delete` reaches the container.
+      - ./example:/app/example
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py seed &&
+             python -m uvicorn example.asgi:application --host 0.0.0.0 --port 8000 --workers 4"

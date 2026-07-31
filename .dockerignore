@@ -1,0 +1,11 @@
+.git
+.venv
+site
+htmlcov
+build
+dist
+**/__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+example/db.sqlite3

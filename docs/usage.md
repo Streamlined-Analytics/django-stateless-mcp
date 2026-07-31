@@ -60,7 +60,7 @@ configuration.
 Host checking is left to Django's `ALLOWED_HOSTS`. The SDK's own DNS-rebinding
 protection is disabled deliberately, so that host policy has a single home in
 your project settings rather than two. See
-[ADR-0007](adr/0007-stateless-view-bridge.md).
+[ADR-0007](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/docs/adr/0007-stateless-view-bridge.md).
 
 ## Registering tools from your apps
 

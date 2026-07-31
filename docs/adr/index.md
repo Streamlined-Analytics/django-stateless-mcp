@@ -5,8 +5,9 @@ problem, what was tried, what failed, and what was chosen. They are written when
 the decision is made and are not rewritten afterwards — a superseded decision
 gets a new record rather than an edit.
 
-They are published rather than kept internal because the reasoning is often more
-useful to someone extending the package than the resulting code is.
+They live here in the repository, for contributors; the Read the Docs site
+carries only the user-facing documentation (ADR-0023 — they were published there
+until then).
 
 | ADR | Decision |
 |---|---|
@@ -32,3 +33,4 @@ useful to someone extending the package than the resulting code is.
 | [ADR-0020](0020-subscription-streams.md) | Subscription streams — ASGI serves them, WSGI refuses them |
 | [ADR-0021](0021-worker-thread-connection-hygiene.md) | Worker-thread database-connection hygiene |
 | [ADR-0022](0022-docker-compose-demo.md) | The example project also boots with `docker compose up` |
+| [ADR-0023](0023-adrs-unpublished-from-docs-site.md) | ADRs live in the repository only, not on the docs site |

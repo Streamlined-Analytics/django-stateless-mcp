@@ -1,5 +1,6 @@
 # /// script
-# requires-python = ">=3.10"
+# tomllib is 3.11+; this maintainer-only script need not match the package's 3.10 floor.
+# requires-python = ">=3.11"
 # ///
 """Tag the current version and create a GitHub release."""
 

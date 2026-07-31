@@ -14,7 +14,7 @@ possible. Most of the API follows from it.
 - [Installation](installation.md) — installing the package
 - [Usage](usage.md) — using it in a Django project
 - [API reference](reference.md) — generated from the source
-- [Decisions](adr/index.md) — the reasoning behind the project's choices
+- [Decisions](https://github.com/Streamlined-Analytics/django-stateless-mcp/tree/main/docs/adr) — the reasoning behind the project's choices, kept in the repository
 
 ## What this package is not
 

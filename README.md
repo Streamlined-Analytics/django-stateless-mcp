@@ -115,10 +115,11 @@ Each is exercised in CI, along with an advisory job tracking the SDK's git main.
 
 ## Try it live
 
-The repo ships a runnable example project. `just demo-asgi` starts it behind
-four worker processes; the [example README](example/README.md) walks through
-watching an elicitation started on one worker resume on another — the
-package's thesis, observable with curl or any MCP client.
+The repo ships a runnable example project. `docker compose up` starts it
+behind four worker processes (no local uv or Python needed; `just demo-asgi`
+is the host-run equivalent); the [example README](example/README.md) quick
+start walks through watching an elicitation started on one worker resume on
+another — the package's thesis, observable with curl or any MCP client.
 
 ## Documentation
 

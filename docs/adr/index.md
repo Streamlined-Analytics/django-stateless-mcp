@@ -34,3 +34,4 @@ until then).
 | [ADR-0021](0021-worker-thread-connection-hygiene.md) | Worker-thread database-connection hygiene |
 | [ADR-0022](0022-docker-compose-demo.md) | The example project also boots with `docker compose up` |
 | [ADR-0023](0023-adrs-unpublished-from-docs-site.md) | ADRs live in the repository only, not on the docs site |
+| [ADR-0024](0024-weekly-django-main-ci.md) | Weekly advisory CI run against Django git main |

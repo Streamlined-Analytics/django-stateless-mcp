@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "MIT" }
 maintainers = [ { name = "Ben Atkinson", email = "ben@streamlinedanalytics.co.uk" } ]
 authors = [ { name = "Ben Atkinson", email = "ben@streamlinedanalytics.co.uk" } ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Web Environment",
@@ -20,6 +20,8 @@ classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -94,6 +96,7 @@ max_supported_python = "3.14"
 [tool.mypy]
 mypy_path = "src/"
 namespace_packages = false
+python_version = "3.10"
 warn_unreachable = true
 enable_error_code = [
   "ignore-without-code",

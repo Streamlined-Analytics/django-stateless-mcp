@@ -4,8 +4,9 @@
 """Tag the current version and create a GitHub release."""
 
 import subprocess
-import tomllib
 from pathlib import Path
+
+import tomllib
 
 
 def _run(*cmd: str) -> None:

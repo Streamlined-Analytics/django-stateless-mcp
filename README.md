@@ -92,6 +92,8 @@ decisions behind the package, is at
 
 ## Development
 
+Contributors: [ARCHITECTURE.md](ARCHITECTURE.md) maps how the package works and the invariants every change must preserve.
+
 ```bash
 git clone git@github.com:Streamlined-Analytics/django-stateless-mcp.git
 cd django-stateless-mcp

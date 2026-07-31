@@ -36,3 +36,4 @@ until then).
 | [ADR-0023](0023-adrs-unpublished-from-docs-site.md) | ADRs live in the repository only, not on the docs site |
 | [ADR-0024](0024-weekly-django-main-ci.md) | Weekly advisory CI run against Django git main |
 | [ADR-0025](0025-django-61-matrix-factor.md) | Django 6.1 joins the test matrix at release candidate |
+| [ADR-0026](0026-architecture-document.md) | A living ARCHITECTURE.md at the repository root |

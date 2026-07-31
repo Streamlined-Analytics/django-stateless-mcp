@@ -48,7 +48,7 @@ If you are proposing a feature:
 
 ## Get Started!
 
-Ready to contribute? Here's how to set up django-stateless-mcp for local development.
+Ready to contribute? Start with [ARCHITECTURE.md](ARCHITECTURE.md) — the map of how the package works, the three invariants every change must preserve, and the traps that have already bitten. Then here's how to set up django-stateless-mcp for local development.
 
 1. Fork the django-stateless-mcp repo on GitHub.
 2. Clone your fork locally:

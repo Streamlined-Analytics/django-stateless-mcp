@@ -11,15 +11,48 @@ sticky routing, and no dedicated single-process service.
 * Created by [Ben Atkinson](https://streamlinedanalytics.co.uk) | GitHub [@BenA-SA](https://github.com/BenA-SA)
 * MIT License
 
-## Why stateless
+## Why use this
 
-Before 2026-07-28, MCP needed a persistent connection: elicitation held an open
-stream and a blocked worker, so a reply that round-robined to another worker
-failed. The 2026-07-28 spec makes MCP plain request/response HTTP — Django's home
-turf — and turns elicitation into a retry any instance can serve. That is the
-change this package is built on; see
-[Why stateless](https://django-stateless-mcp.readthedocs.io/en/stable/why-stateless/) for
-the full story.
+**Your MCP server is an ordinary Django view.** It deploys with the rest of
+your application — same process, same settings, same middleware, same
+monitoring — and tools call your models and business logic directly. There is
+no separate MCP service to build, secure, and operate.
+
+**It scales like the rest of your Django app — which MCP previously could
+not.** Before the 2026-07-28 spec, MCP needed a persistent connection: a tool
+that asked the user a question held an open stream and a blocked worker, and a
+reply that round-robined to another worker failed. The practical workaround was
+a dedicated single-process MCP service. The 2026-07-28 spec makes MCP plain
+request/response HTTP — Django's home turf — so any worker on any instance can
+serve any request. See
+[Why stateless](https://django-stateless-mcp.readthedocs.io/en/stable/why-stateless/)
+for the full story.
+
+**Tools can ask the user questions — elicitation.** A tool can pause mid-call
+to request input — fill in missing form fields, or require explicit approval
+before a create, update or delete — then resume when the answer comes back.
+`request_state_security()` keys the resume state from `SECRET_KEY`, so the
+answer can land on a different worker than the one that asked.
+
+**Kick off a long job, keep chatting, and the result comes back when it's
+ready.** A tool can start a background job (a Celery task, say) and return
+instantly with a job reference; when the job finishes, the server pushes a
+notification over a subscription stream and the client fetches the result — no
+polling, no worker blocked for the duration. See the
+[long-running jobs recipe](https://django-stateless-mcp.readthedocs.io/en/stable/recipes/long-running-jobs/).
+
+**Your authentication and permissions work inside tools.** Bearer-token auth
+resolves to a real Django user, so `request.user` is populated and
+`user.has_perm(...)` just works. `PermittedToolsFilter` additionally hides
+tools a user may not use from `tools/list` — while each tool still gates its
+own execution.
+
+**You can see what your MCP is doing.** Optional structlog middleware logs one
+queryable event per request: method, tool, duration, and whether the call
+completed or paused for input.
+
+**Tools register the Django way.** Each app gets an `mcp.py`, discovered
+automatically — exactly like `admin.py`.
 
 ## Usage
 
@@ -65,6 +98,9 @@ That is the whole integration. The endpoint runs under both WSGI and ASGI.
 * **`django_request(ctx)`** — reach the authenticated Django request from inside
   a tool, with no global state.
 * **`StructlogRequestLogger`** — optional flow-logging middleware.
+* **Subscription streams** — clients can subscribe to server-pushed events
+  under ASGI; under WSGI the endpoint declines cleanly rather than pinning a
+  worker.
 
 Tool registration, elicitation, resources and prompts are the MCP SDK's own API;
 this package is the Django layer around it.

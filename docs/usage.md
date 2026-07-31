@@ -205,6 +205,10 @@ On a multi-worker fleet, implement `SubscriptionBus` over an external pub/sub
 backend (Redis, NATS, …) so events fan out across replicas — the SDK protocol
 is two methods, `publish` and `subscribe`.
 
+For the end-to-end pattern this enables — a tool starts a Celery task and
+returns instantly, and the client is notified the moment the result is ready —
+see the [long-running jobs recipe](recipes/long-running-jobs.md).
+
 ## Requiring bearer authentication
 
 Pass the SDK's `TokenVerifier` protocol to `mcp_view()` and the endpoint
@@ -297,28 +301,6 @@ finished call, so multi-round flows can be reconstructed from logs.
 Failures log at `warning` and **re-raise** — errors stay owned by the SDK's
 protocol handling and your error tracker.
 
-## Logging tool dispatch
-
-Add the middleware to log one structured event per request:
-
-```python
-from django_stateless_mcp import StructlogRequestLogger
-
-server = MCPServer(
-    name="my-server",
-    middleware=[StructlogRequestLogger()],
-)
-```
-
-Each request logs `mcp.request.completed` at `info` — with `method`,
-`tool_name`, `request_id`, `duration_ms`, and `exit` (`"completed"` or
-`"input_required"`, so an elicitation pause is queryable apart from a finished
-call). A failure logs `mcp.request.failed` at `warning` with the exception
-type and then **re-raises** — the SDK's protocol handling and Sentry own
-errors; the middleware only records that the flow ended that way.
-
 Event names are dotted and stable and the variables are structlog kwargs, so
 they render to JSON fields you can query (for example
-`| json | duration_ms > 500`). Install the optional dependency with
-`django-stateless-mcp[structlog]`, and configure structlog as your project
-prefers.
+`| json | duration_ms > 500`). Configure structlog as your project prefers.

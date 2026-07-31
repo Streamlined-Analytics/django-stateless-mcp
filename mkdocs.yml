@@ -53,3 +53,4 @@ nav:
   - API reference: reference.md
   - Recipes:
       - OAuth & permissions: recipes/oauth-and-permissions.md
+      - Long-running jobs: recipes/long-running-jobs.md

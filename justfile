@@ -78,6 +78,10 @@ demo-gunicorn:
     uv run python manage.py seed
     uv run --with gunicorn gunicorn example.wsgi:application --workers 4 --bind 127.0.0.1:8000
 
+# Run the ASGI four-worker demo in Docker (same fleet as demo-asgi, no local uv needed)
+demo-docker:
+    docker compose up --build
+
 # Prove horizontal scaling against real uvicorn and gunicorn fleets
 multiworker:
     MULTIWORKER=1 uv run pytest tests/test_multiworker.py -v

@@ -14,6 +14,7 @@ That fleet is the point: the `worker_pid` tool shows different processes answeri
 You can stop the server mid-elicitation, start it again, and the resume still completes — no process ever held the flow.
 
 `just demo` runs the same project under WSGI (Django's dev server), because the view serves both.
+No local uv or Python? `docker compose up` boots the same four-worker fleet in a container.
 
 The example is not a separate artifact that can drift: the package's test suite inherits its settings and drives the same servers and URLs, and the MCP conformance suite in CI boots it over real HTTP.
 What the demo serves is exactly what the tests assert on.

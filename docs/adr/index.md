@@ -37,3 +37,4 @@ until then).
 | [ADR-0024](0024-weekly-django-main-ci.md) | Weekly advisory CI run against Django git main |
 | [ADR-0025](0025-django-61-matrix-factor.md) | Django 6.1 joins the test matrix at release candidate |
 | [ADR-0026](0026-architecture-document.md) | A living ARCHITECTURE.md at the repository root |
+| [ADR-0027](0027-adamchainz-tooling-adoptions.md) | Tooling adoptions from the django-linear-migrations / django-mysql review |

@@ -71,7 +71,7 @@ this package is the Django layer around it.
 
 ## Supported versions
 
-* Python 3.12–3.14
+* Python 3.10–3.14 (3.10 and 3.11 with Django 5.2 LTS only, matching Django's own support)
 * Django 5.2 LTS and 6.0
 * `mcp` 2.0.x
 

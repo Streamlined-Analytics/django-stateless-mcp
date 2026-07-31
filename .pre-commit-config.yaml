@@ -1,12 +1,14 @@
 ci:
   autoupdate_schedule: monthly
+  # The local mypy hook needs the uv project env, which pre-commit.ci lacks.
+  skip: [mypy]
 
 default_language_version:
   python: python3.13
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -17,27 +19,32 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
+  - repo: https://github.com/crate-ci/typos
+    rev: 96d9af6217dc2855210655af7e1ff19d23d4e593  # frozen: v1
+    hooks:
+      - id: typos
+
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.23.0
+    rev: d600c142bb19f521ae6a6a345f94a2efd7937759  # frozen: v2.26.0
     hooks:
       - id: pyproject-fmt
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+    rev: 39d9ac5938dadb73df0564a45f163e25ff9fa6e2  # frozen: v0.16.1
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.20.0
+    rev: dda8db18cfc68df532abf33b185ecd12d5b7b326  # frozen: 1.20.0
     hooks:
       - id: blacken-docs
         additional_dependencies:
           - black==25.1.0
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.30.0
+    rev: bdcc9646c249f00ec9781751791e7b75b48b3722  # frozen: 1.31.1
     hooks:
       - id: django-upgrade
         args: [--target-version, "5.2"]

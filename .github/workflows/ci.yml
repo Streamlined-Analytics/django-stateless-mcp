@@ -79,6 +79,7 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: .coverage.*
           include-hidden-files: true
+          if-no-files-found: error
 
   # Advisory: SDK git main can break through no fault of ours. See ADR-0006.
   test-mcp-main:

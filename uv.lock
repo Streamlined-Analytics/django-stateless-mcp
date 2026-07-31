@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-07-23T14:33:39.05138049Z"
+exclude-newer = "2026-07-24T12:27:11.664289849Z"
 exclude-newer-span = "P1W"
 
 [options.exclude-newer-package]
@@ -447,7 +447,7 @@ wheels = [
 
 [[package]]
 name = "django-stateless-mcp"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "." }
 dependencies = [
     { name = "django" },

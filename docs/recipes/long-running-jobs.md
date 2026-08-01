@@ -59,12 +59,15 @@ from mcp.server.subscriptions import ResourceUpdated
 from myproject.mcp import bus
 
 
-@shared_task
-def generate_report(quarter: str, user_pk: int) -> None:
+@shared_task(bind=True)
+def generate_report(self, quarter: str, user_pk: int) -> None:
     report = build_the_report(quarter, user_pk)
+    report.job_id = self.request.id
     report.save()
     async_to_sync(bus.publish)(ResourceUpdated(uri=f"report://{report.job_id}"))
 ```
+
+The task stores its own Celery id on the model (`bind=True` exposes it as `self.request.id`), so the URI it publishes is exactly the one the tool promised — and the same id is what `get_report` looks up below.
 
 One important wrinkle: the Celery worker is a **different process** from your web workers, so the SDK's default `InMemorySubscriptionBus` cannot carry this event to an open stream — it only reaches streams held by the process that published.
 For any deployment with a task queue or more than one web worker, implement `SubscriptionBus` over an external pub/sub backend (Redis, NATS, …).

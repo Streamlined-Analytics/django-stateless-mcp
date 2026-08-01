@@ -4,6 +4,25 @@ A stateless Model Context Protocol server for Django, built on the **2026-07-28*
 spec. An MCP endpoint becomes an ordinary Django view: no sessions, no SSE, no
 sticky routing, and no dedicated single-process service.
 
+## Why use this
+
+- **Your MCP server is an ordinary Django view** — same deployment, same
+  middleware, same monitoring, and tools call your models and business logic
+  directly. No separate MCP service to build, secure, and operate.
+- **It scales like the rest of your Django app** — any worker on any instance
+  can serve any request, including an elicitation answer.
+- **Tools can ask the user questions** — pause mid-call for missing form
+  fields or an explicit approval, then resume on whichever worker the answer
+  lands on.
+- **Kick off a long job, keep chatting, and the result comes back when it's
+  ready** — see the [long-running jobs recipe](recipes/long-running-jobs.md).
+- **Your authentication and permissions work inside tools** — bearer auth
+  resolves to a real Django user, so `user.has_perm(...)` just works.
+- **You can see what your MCP is doing** — optional structlog middleware logs
+  one queryable event per request.
+- **Tools register the Django way** — each app's `mcp.py` is discovered
+  automatically, exactly like `admin.py`.
+
 ## Start here
 
 **[Why stateless](why-stateless.md)** — read this first. It explains the problem
@@ -13,6 +32,7 @@ possible. Most of the API follows from it.
 
 - [Installation](installation.md) — installing the package
 - [Usage](usage.md) — using it in a Django project
+- [Try it live](example.md) — the runnable example project
 - [API reference](reference.md) — generated from the source
 - [Decisions](https://github.com/Streamlined-Analytics/django-stateless-mcp/tree/main/docs/adr) — the reasoning behind the project's choices, kept in the repository
 

@@ -8,8 +8,9 @@ MCP package worth having at all.
 
 Before the 2026-07-28 spec, MCP required a **persistent, bidirectional
 connection**. A server that needed to ask the user a question mid-tool-call —
-*elicitation* — held an open SSE stream and a blocked coroutine while it waited
-for the answer.
+*elicitation*, the natural fit for filling in missing form fields or requiring
+an explicit approval before a create, update, or delete — held an open SSE
+stream and a blocked coroutine while it waited for the answer.
 
 That works on one process. It breaks on a fleet:
 

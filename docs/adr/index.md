@@ -39,5 +39,6 @@ until then).
 | [ADR-0026](0026-architecture-document.md) | A living ARCHITECTURE.md at the repository root |
 | [ADR-0027](0027-adamchainz-tooling-adoptions.md) | Tooling adoptions from the django-linear-migrations / django-mysql review |
 | [ADR-0028](0028-python-310-floor.md) | Python floor lowered to 3.10, tracking Django 5.2's own support |
+| [ADR-0029](0029-benefits-led-messaging.md) | Benefits-led messaging across the README and docs |
 | [ADR-0031](0031-non-atomic-requests-exemption.md) | `mcp_view()` exempts itself from `ATOMIC_REQUESTS` on every alias |
 | [ADR-0032](0032-consumer-realistic-example-settings.md) | The example project runs consumer-realistic settings, and the suite tests the gaps |

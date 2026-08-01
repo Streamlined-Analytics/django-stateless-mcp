@@ -11,7 +11,9 @@ from django.urls import URLPattern, URLResolver, path
 
 from django_stateless_mcp import mcp_view
 from example.mcp_server import (
+    DatabaseTokenVerifier,
     StubVerifier,
+    resolve_db_user,
     resolve_no_user,
     resolve_stub_user,
     server,
@@ -21,6 +23,9 @@ from example.mcp_server import (
 
 urlpatterns: list[URLPattern | URLResolver] = [
     path("mcp/", mcp_view(server)),
+    # The slash-less mount real consumers deploy: MCP clients default to /mcp,
+    # and APPEND_SLASH never strips a slash, so the path must match exactly.
+    path("mcp", mcp_view(server)),
     path("mcp-b/", mcp_view(server_b)),
     path(
         "auth-mcp/",
@@ -63,6 +68,16 @@ urlpatterns: list[URLPattern | URLResolver] = [
             server,
             token_verifier=StubVerifier(),
             required_scopes=["mcp:admin"],
+        ),
+    ),
+    # Verification backed by the database on every request, the consumer shape.
+    path(
+        "db-mcp/",
+        mcp_view(
+            server,
+            token_verifier=DatabaseTokenVerifier(),
+            required_scopes=["mcp:read"],
+            user_resolver=resolve_db_user,
         ),
     ),
 ]

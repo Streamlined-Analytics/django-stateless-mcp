@@ -116,6 +116,18 @@ def request_path(ctx: Context) -> str:
 
 
 @server.tool()
+def request_scheme(ctx: Context) -> str:
+    """Echo the scheme of the Django request serving this call.
+
+    ``request.scheme`` honours ``SECURE_PROXY_SSL_HEADER`` and is verbatim
+    what the bridge forwards as the ASGI scope's ``scheme``, so this makes
+    the behind-a-proxy deployment shape assertable.
+    """
+    # The stubs allow None for a request built without a handler; never on this path.
+    return django_request(ctx).scheme or "unknown"
+
+
+@server.tool()
 def db_thread_info(ctx: Context) -> str:
     """Show the worker thread serving this tool and its DB connection state.
 
@@ -182,3 +194,27 @@ def delete_widget(ctx: Context, widget_id: int) -> str:
 async def resolve_no_user(token: str) -> None:
     """A resolver that never finds a user, modelling a client-credentials token."""
     return None
+
+
+class DatabaseTokenVerifier:
+    """A TokenVerifier that checks every token against the database.
+
+    Mirrors the shape real consumers run (django-oauth-toolkit): one ORM
+    lookup per request, no in-memory token state, so any worker can verify
+    any request. The token doubles as the username, keeping the example
+    free of extra models.
+    """
+
+    __slots__ = ()
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        """Accept a token naming an active user; reject everything else."""
+        user = await sync_to_async(User.objects.filter(username=token, is_active=True).first)()
+        if user is None:
+            return None
+        return AccessToken(token=token, client_id=user.get_username(), scopes=["mcp:read"])
+
+
+async def resolve_db_user(token: str) -> User | None:
+    """Resolve the token to its database user, the way a DOT resolver would."""
+    return await sync_to_async(User.objects.filter(username=token, is_active=True).first)()

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 import anyio
 import anyio.to_thread
 from django.core.handlers.asgi import ASGIRequest
-from django.db import close_old_connections
+from django.db import close_old_connections, connections, transaction
 from django.http import HttpResponse, HttpResponseBase, HttpResponseNotAllowed, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from mcp.server.transport_security import TransportSecuritySettings
@@ -352,6 +352,13 @@ def mcp_view(
     The view is asynchronous, so it runs natively under ASGI. Django starts an
     event loop per request under WSGI, so one view serves both deployments.
 
+    The view is exempt from ``ATOMIC_REQUESTS`` on every configured database
+    alias. Django refuses to serve an async view on an alias running
+    per-request transactions, so without the exemption the endpoint 500s on
+    every request in any project setting ``ATOMIC_REQUESTS = True`` -- there is
+    no configuration under which the exemption takes anything away. Tools that
+    need transactional writes open their own ``transaction.atomic()`` blocks.
+
     Raises ``ValueError`` if ``user_resolver`` or ``required_scopes`` is given
     without a ``token_verifier`` -- both are meaningless without authentication,
     and silently ignoring them would leave the endpoint unexpectedly open.
@@ -370,4 +377,8 @@ def mcp_view(
     async def view(request: HttpRequest) -> HttpResponseBase:
         return await bridge.handle(request)
 
-    return csrf_exempt(view)
+    exempt_view = csrf_exempt(view)
+    # An async view on an ATOMIC_REQUESTS alias never runs -- Django raises before dispatch. See ADR-0031.
+    for alias in connections:
+        transaction.non_atomic_requests(using=alias)(exempt_view)
+    return exempt_view

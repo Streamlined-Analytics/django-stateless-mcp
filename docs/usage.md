@@ -131,6 +131,14 @@ the same posture DRF takes for token-authenticated APIs.
 If you deliberately put cookie-session authentication in front of an MCP
 endpoint, that protection becomes yours to provide.
 
+The view is also exempt from `ATOMIC_REQUESTS`, on every configured database
+alias.
+Django refuses to serve an async view on an alias running per-request
+transactions, so without the exemption the endpoint would 500 on every request
+in any project with `ATOMIC_REQUESTS = True` — cookiecutter-django's default.
+Per-request transactions never apply to MCP requests as a result: tools that
+need transactional writes open their own `transaction.atomic()` blocks.
+
 ## Sync tools and the ORM
 
 Plain `def` tools are run by the SDK in a worker thread, off the event loop, so

@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 import pytest
+from django.db import connections
 from django.test import Client
 
 MCP_URL = "/mcp/"
@@ -108,6 +109,36 @@ async def test_get_is_rejected_under_asgi(async_client):
     response = await async_client.get(MCP_URL, headers=MCP_HEADERS)
 
     assert response.status_code == 405
+
+
+@pytest.fixture
+def atomic_requests():
+    """Turn on per-request transactions on every alias, as consumer projects do.
+
+    ``override_settings(DATABASES=...)`` does not reach ``connections.settings``,
+    so this mutates the live settings dicts the way Django's own handler tests
+    do, restoring the originals afterwards.
+    """
+    originals = {alias: settings_dict["ATOMIC_REQUESTS"] for alias, settings_dict in connections.settings.items()}
+    for settings_dict in connections.settings.values():
+        settings_dict["ATOMIC_REQUESTS"] = True
+    yield
+    for alias, settings_dict in connections.settings.items():
+        settings_dict["ATOMIC_REQUESTS"] = originals[alias]
+
+
+def test_view_serves_under_atomic_requests(client, atomic_requests):
+    """``ATOMIC_REQUESTS = True`` must not break the endpoint.
+
+    Django's ``make_view_atomic`` refuses to serve an async view on any alias
+    running per-request transactions, so without the ``non_atomic_requests``
+    exemption every request raised ``RuntimeError`` before dispatch -- unit
+    tests against the server object never crossed the handler and stayed
+    green while production 500d (issue #45).
+    """
+    response = post(client, "tools/list")
+
+    assert response.status_code == 200
 
 
 def test_unknown_tool_reports_an_error(client):

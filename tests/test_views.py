@@ -42,16 +42,16 @@ def test_tools_list_returns_registered_tool(client):
 
     assert response.status_code == 200
     tools = json.loads(response.content)["result"]["tools"]
-    assert "add" in {tool["name"] for tool in tools}
+    assert "list_books" in {tool["name"] for tool in tools}
 
 
 def test_tools_call_executes_the_tool(client):
     """A tool call runs and returns its structured result."""
-    response = post(client, "tools/call", {"name": "add", "arguments": {"a": 2, "b": 3}})
+    response = post(client, "tools/call", {"name": "book_slug", "arguments": {"title": "Two Scoops of Django"}})
 
     assert response.status_code == 200
     result = json.loads(response.content)["result"]
-    assert result["structuredContent"] == {"result": 5}
+    assert result["structuredContent"] == {"result": "two-scoops-of-django"}
     assert result["isError"] is False
 
 
@@ -189,14 +189,14 @@ async def test_tools_call_under_asgi(async_client):
     """The same view serves ASGI, where it runs without a wrapping event loop."""
     response = await async_client.post(
         MCP_URL,
-        data=request_body("tools/call", {"name": "add", "arguments": {"a": 7, "b": 5}}),
+        data=request_body("tools/call", {"name": "book_slug", "arguments": {"title": "Stateless by Design"}}),
         content_type="application/json",
         headers=MCP_HEADERS,
     )
 
     assert response.status_code == 200
     result = json.loads(response.content)["result"]
-    assert result["structuredContent"] == {"result": 12}
+    assert result["structuredContent"] == {"result": "stateless-by-design"}
 
 
 @pytest.mark.anyio
@@ -204,7 +204,7 @@ async def test_consecutive_requests_share_no_state(async_client):
     """Two requests are served independently, as separate workers would."""
     first = await async_client.post(
         MCP_URL,
-        data=request_body("tools/call", {"name": "add", "arguments": {"a": 1, "b": 1}}),
+        data=request_body("tools/call", {"name": "book_slug", "arguments": {"title": "Django"}}),
         content_type="application/json",
         headers=MCP_HEADERS,
     )
@@ -215,28 +215,30 @@ async def test_consecutive_requests_share_no_state(async_client):
         headers=MCP_HEADERS,
     )
 
-    assert json.loads(first.content)["result"]["structuredContent"] == {"result": 2}
-    assert json.loads(second.content)["result"]["tools"][0]["name"] == "add"
+    assert json.loads(first.content)["result"]["structuredContent"] == {"result": "django"}
+    assert json.loads(second.content)["result"]["tools"][0]["name"] == "list_books"
 
 
 def test_autodiscovery_imported_the_app_mcp_module(client):
     """Tools registered in an app's mcp.py are served without explicit import.
 
-    Nothing in the test suite or URLconf imports example.mcp, so multiply can
+    Nothing in the test suite or URLconf imports example.mcp, so book_slug can
     only be present if the app config's autodiscovery imported it.
     """
     response = post(client, "tools/list")
 
     tools = {tool["name"] for tool in json.loads(response.content)["result"]["tools"]}
-    assert {"add", "multiply"} <= tools
+    assert {"list_books", "book_slug"} <= tools
 
 
 def test_autodiscovered_tool_is_callable(client):
     """An autodiscovered tool executes like any directly registered one."""
-    response = post(client, "tools/call", {"name": "multiply", "arguments": {"a": 6, "b": 7}})
+    response = post(
+        client, "tools/call", {"name": "book_slug", "arguments": {"title": "The Definitive Guide to Django"}}
+    )
 
     result = json.loads(response.content)["result"]
-    assert result["structuredContent"] == {"result": 42}
+    assert result["structuredContent"] == {"result": "the-definitive-guide-to-django"}
 
 
 def test_broken_app_mcp_module_raises_at_startup(settings):
@@ -271,10 +273,11 @@ def test_sync_tool_uses_the_orm(client):
     on a different connection: the SDK executes sync tools in a worker
     thread, and an uncommitted row would be invisible to it.
     """
-    from django.contrib.auth.models import User
+    from example.models import Author, Book
 
-    User.objects.create_user("mcp-test-user")
-    response = post(client, "tools/call", {"name": "count_users", "arguments": {}})
+    author = Author.objects.create(name="Adrian Holovaty")
+    Book.objects.create(title="The Definitive Guide to Django", author=author)
+    response = post(client, "tools/call", {"name": "count_books", "arguments": {}})
 
     result = json.loads(response.content)["result"]
     assert result["structuredContent"] == {"result": 1}
@@ -486,13 +489,13 @@ def test_dispatch_logs_a_completed_event(client):
     from structlog.testing import capture_logs
 
     with capture_logs() as captured:
-        post(client, "tools/call", {"name": "add", "arguments": {"a": 1, "b": 2}})
+        post(client, "tools/call", {"name": "book_slug", "arguments": {"title": "Django"}})
 
     events = [e for e in captured if e["event"] == "mcp.request.completed"]
     assert events, captured
     event = events[0]
     assert event["method"] == "tools/call"
-    assert event["tool_name"] == "add"
+    assert event["tool_name"] == "book_slug"
     assert isinstance(event["duration_ms"], float)
     assert event["exit"] == "completed"
 
@@ -545,16 +548,21 @@ def test_permission_locked_tool_denies_user_without_perm(client):
     """A tool gating on user.has_perm refuses a user who lacks it."""
     from django.contrib.auth.models import User
 
+    from example.models import Author
+
     User.objects.create_user("mcp-test-user")
+    author = Author.objects.create(name="Sally Author")
     response = client.post(
         USER_URL,
-        data=request_body("tools/call", {"name": "delete_widget", "arguments": {"widget_id": 1}}),
+        data=request_body("tools/call", {"name": "update_author", "arguments": {"author_id": author.pk, "name": "X"}}),
         content_type="application/json",
         headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
     )
 
     result = json.loads(response.content)["result"]
     assert result["isError"] is True
+    author.refresh_from_db()
+    assert author.name == "Sally Author"
 
 
 @pytest.mark.django_db(transaction=True)
@@ -562,17 +570,24 @@ def test_permission_locked_tool_allows_user_with_perm(client):
     """The same tool runs for a user granted the permission."""
     from django.contrib.auth.models import Permission, User
 
+    from example.models import Author
+
     user = User.objects.create_user("mcp-test-user")
-    user.user_permissions.add(Permission.objects.get(codename="delete_user"))
+    user.user_permissions.add(Permission.objects.get(codename="can_update_authors"))
+    author = Author.objects.create(name="Sally Author")
     response = client.post(
         USER_URL,
-        data=request_body("tools/call", {"name": "delete_widget", "arguments": {"widget_id": 7}}),
+        data=request_body(
+            "tools/call", {"name": "update_author", "arguments": {"author_id": author.pk, "name": "Sally Renamed"}}
+        ),
         content_type="application/json",
         headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
     )
 
     result = json.loads(response.content)["result"]
-    assert result["structuredContent"] == {"result": "deleted widget 7"}
+    assert result["structuredContent"] == {"result": f"author {author.pk} renamed to Sally Renamed"}
+    author.refresh_from_db()
+    assert author.name == "Sally Renamed"
 
 
 FILTERED_URL = "/filtered-mcp/"
@@ -597,7 +612,7 @@ def test_hidden_tool_absent_from_list_without_perm(client):
 
     names = _list_names(response)
     assert "public_ping" in names
-    assert "delete_widget" not in names
+    assert "update_author" not in names
 
 
 @pytest.mark.django_db(transaction=True)
@@ -606,7 +621,7 @@ def test_hidden_tool_present_in_list_with_perm(client):
     from django.contrib.auth.models import Permission, User
 
     user = User.objects.create_user("mcp-test-user")
-    user.user_permissions.add(Permission.objects.get(codename="delete_user"))
+    user.user_permissions.add(Permission.objects.get(codename="can_update_authors"))
     response = client.post(
         FILTERED_URL,
         data=request_body("tools/list"),
@@ -614,14 +629,14 @@ def test_hidden_tool_present_in_list_with_perm(client):
         headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
     )
 
-    assert "delete_widget" in _list_names(response)
+    assert "update_author" in _list_names(response)
 
 
 @pytest.mark.django_db(transaction=True)
 def test_hidden_tool_still_execution_gated(client):
     """Visibility is not the boundary: a hidden tool called by name is refused.
 
-    The client never saw delete_widget in tools/list, but nothing stops it
+    The client never saw update_author in tools/list, but nothing stops it
     calling the name directly. The tool's own permission check is what makes
     that safe -- filtering alone would be security theatre.
     """
@@ -630,12 +645,40 @@ def test_hidden_tool_still_execution_gated(client):
     User.objects.create_user("mcp-test-user")
     response = client.post(
         FILTERED_URL,
-        data=request_body("tools/call", {"name": "delete_widget", "arguments": {"widget_id": 1}}),
+        data=request_body("tools/call", {"name": "update_author", "arguments": {"author_id": 1, "name": "X"}}),
         content_type="application/json",
         headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
     )
 
     assert json.loads(response.content)["result"]["isError"] is True
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_books_returns_seeded_titles(client):
+    """list_books reads real rows through the ORM, author included."""
+    from example.models import Author, Book
+
+    author = Author.objects.create(name="Audrey Roy Greenfeld")
+    Book.objects.create(title="Two Scoops of Django", author=author)
+    response = post(client, "tools/call", {"name": "list_books", "arguments": {}})
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": ["Two Scoops of Django (Audrey Roy Greenfeld)"]}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_slow_book_report_returns_books(client, monkeypatch):
+    """The slow tool returns the book list; tests never pay the 30 s sleep."""
+    from example import mcp_server
+    from example.models import Author, Book
+
+    monkeypatch.setattr(mcp_server, "SLOW_BOOK_REPORT_SECONDS", 0.0)
+    author = Author.objects.create(name="Sally Author")
+    Book.objects.create(title="Stateless by Design", author=author)
+    response = post(client, "tools/call", {"name": "slow_book_report", "arguments": {}})
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": ["Stateless by Design (Sally Author)"]}
 
 
 def test_user_resolver_without_verifier_is_rejected():

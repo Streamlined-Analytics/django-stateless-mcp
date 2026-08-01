@@ -1,7 +1,7 @@
 # The runnable example project
 
-A tiny but real Django project serving `django-stateless-mcp`.
-The quick start below shows the package's thesis live in about two minutes; everything deeper — permissions, curl proofs, subscriptions — is in [the details](#the-details).
+A tiny but real Django project serving `django-stateless-mcp` — a small book library, in the spirit of Django's own documentation examples.
+The quick start below shows the package's thesis live in about two minutes; everything deeper — the admin permission toggle, the deliberately slow tool, curl proofs, subscriptions — is in [the details](#the-details).
 
 ## Quick start
 
@@ -28,11 +28,13 @@ The quick start below shows the package's thesis live in about two minutes; ever
    Don't use *Auto* — it can fall back to legacy.
    A legacy-era connection is what makes elicitation tools fail with *"Handler returned an invalid result"*; a connected modern session shows a **Modern** era badge.
 
-5. **Call a tool**: **Tools** tab → **List Tools** → run `add` with `a=2, b=3` → `5`.
+5. **Call a tool**: **Tools** tab → **List Tools** → run `list_books` → the seeded library, straight from the ORM: `The Definitive Guide to Django (Adrian Holovaty)` and friends.
 
 6. **Run the elicitation round-trip**: run `test_input_required_result_elicitation`.
    Inspector pauses at a pending-request modal asking for a name; submit it, and Inspector automatically retries with the returned `requestState` → the tool completes with a greeting.
    In the server log that is two independent requests — `exit=input_required`, then `exit=completed` — with no state held between them.
+
+7. **Toggle a permission in the Django admin** and watch the tool list change — the two-layer permission demo, spelled out in [Test permissions through the admin](#test-permissions-through-the-admin-and-inspector).
 
 That is the package's thesis, observed live.
 The harder proofs — the retry answered by a **different server instance**, the whole fleet **killed and restarted mid-flow**, tampered state rejected — are in [the curl walkthrough](#see-statelessness-with-your-own-eyes-curl).
@@ -63,8 +65,8 @@ The Docker variant bind-mounts `example/`, so it shares `db.sqlite3` with the ho
 Everything below works identically against either fleet — connect Inspector to whichever is running and watch `worker_pid` and the structlog output to see which processes serve.
 The automated version of the fleet proofs is `just multiworker` ([ADR-0019](../docs/adr/0019-multiworker-harness.md)): it boots both fleets itself and asserts the kill-the-fleet elicitation resume, so you only need the demo targets for interactive testing.
 
-Seeding creates `mcp-test-user`, the user the bearer endpoints resolve the demo token to.
-The bearer token `good-token` is a published demo constant, not a secret.
+Seeding creates the small book library the book tools read, `mcp-test-user` (the user the bearer endpoints resolve the demo token to), and an `admin` superuser for the Django admin at `http://127.0.0.1:8000/admin/`.
+The bearer token `good-token` and the `admin`/`admin` credentials are published demo constants, not secrets — the same stance as the example's committed `SECRET_KEY`.
 
 Two practical notes:
 
@@ -94,41 +96,45 @@ A connected modern session's server log shows `server/discover` with **no** `ini
 Inspector may report the same pid from `worker_pid` repeatedly: HTTP keep-alive pins its TCP connection to one worker.
 That is connection affinity, not server state — the curl transcript below shows the real spread.
 
-### Test permissions through Inspector
+### Test permissions through the admin and Inspector
 
 The permission cycle demonstrates both layers: *visibility filtering* (`PermittedToolsFilter`) and *execution gating* (the tool's own check) — and why only the second is a security boundary.
-
-The grant/revoke state persists in `example/db.sqlite3` between runs, so start from a known state — the revoked default:
-
-```sh
-docker compose exec demo python manage.py seed --revoke-delete
-```
-
-(Running the host fleet instead? `uv run python manage.py seed --revoke-delete` — the bind mount means both forms reach the same database.)
+The permission in play is the example's own custom one, `example.can_update_authors`, declared in `Author.Meta.permissions` the way Django's docs recommend — not a borrowed built-in.
 
 1. Add a second Inspector server: URL `http://127.0.0.1:8000/filtered-mcp/`, Protocol Era **Modern**, and in the settings' auth section a bearer token of `good-token`.
-2. Connect → List Tools. With the permission revoked, you see only `public_ping` — `delete_widget` is hidden.
-3. Grant the permission and re-list:
-
-   ```sh
-   docker compose exec demo python manage.py seed --grant-delete
-   ```
-
-   `delete_widget` appears (each request re-evaluates — nothing is cached anywhere).
-   Run it with `widget_id: 1` → `"deleted widget 1"`.
-   (Run it *without* `widget_id` and you get a validation error, not a permission refusal — don't misread it in permission tests.)
-4. Revoke, and — **without re-listing** — run `delete_widget` again from the still-visible entry:
-
-   ```sh
-   docker compose exec demo python manage.py seed --revoke-delete
-   ```
-
-   It is refused: *"You may not delete widgets."*
+2. Connect → List Tools. By default you see only `public_ping` — `update_author` is hidden, because `mcp-test-user` lacks the permission.
+3. **Grant the permission in the Django admin**: open `http://127.0.0.1:8000/admin/` and log in as `admin` / `admin` (demo-only credentials).
+   Go to **Users → mcp-test-user → User permissions**, pick **example | author | Can update authors**, add it to chosen permissions, and **Save**.
+4. Back in Inspector, **List Tools** again — `update_author` appears (each request re-evaluates the user's permissions — nothing is cached anywhere).
+   Run it with `author_id: 1, name: "Renamed Author"` → `"author 1 renamed to Renamed Author"`, then see the change in the admin's Authors list.
+   (Run it *without* its arguments and you get a validation error, not a permission refusal — don't misread it in permission tests.)
+5. Remove the permission again in the admin, and — **without re-listing** — run `update_author` from the still-visible entry.
+   It is refused: *"You may not update authors."*
    The client could still name the tool; hiding it from `tools/list` was never the protection. **Tools must gate their own execution** ([ADR-0014](../docs/adr/0014-user-and-tool-permissions.md)).
+
+Prefer a scriptable toggle (or start from a known state — the grant persists in `example/db.sqlite3` between runs)? The seed command flips the same permission:
+
+```sh
+docker compose exec demo python manage.py seed --grant-update-authors   # or --revoke-update-authors
+```
+
+(Running the host fleet instead? `uv run python manage.py seed --revoke-update-authors` — the bind mount means both forms reach the same database.)
 
 For the user-resolution half, connect to `/user-mcp/` (same token): `current_username` returns `mcp-test-user`.
 On the open `/mcp/` it returns `""` — Django's `AuthenticationMiddleware` supplies `AnonymousUser` when nothing authenticates the request.
 And `/admin-mcp/` answers `403` to everything: the demo token lacks the `mcp:admin` scope.
+
+### A deliberately slow tool
+
+`slow_book_report` blocks for a full 30 seconds before returning the book list — long enough to *feel* what a slow tool does to a conversation, and to see what it does not do to the server.
+
+1. **First raise Inspector's request timeout**, or the call will abort at the default 10 s: in Inspector's **Configuration** pane, set **Request Timeout** to `60000`.
+2. Run `slow_book_report` and let it hang.
+3. While it hangs, run `worker_pid` or `list_books` from another server entry (or curl) — they answer immediately.
+   The sleeping tool occupies one worker *thread*, not the event loop and not the fleet.
+
+Under the WSGI fleet (`just demo-gunicorn`) the contrast is sharper: a slow call pins an entire worker *process* — with four workers, four concurrent slow calls stall everything.
+That per-flow cost is exactly what this package exists to remove, and why real applications should never block like this: start the job and notify instead — see the [long-running-jobs recipe](../docs/recipes/long-running-jobs.md).
 
 ### See statelessness with your own eyes (curl)
 
@@ -228,9 +234,10 @@ That lottery is the live demonstration of why a real fleet wires an external `Su
 
 ### Tools worth trying
 
-- `add`, `multiply` — plain tools (`multiply` arrives via `mcp.py` autodiscovery).
+- `list_books`, `count_books` — the library through the ORM; `book_slug` arrives via `mcp.py` autodiscovery.
 - `worker_pid` — which process answered.
-- `count_users`, `current_username`, `delete_widget` — ORM, resolved user, permission gating (on `/user-mcp/`); `delete_widget` requires a `widget_id` argument.
-- `db_thread_info` — which worker thread served the call and whether it still holds a DB connection; call `count_users` then this to watch connection hygiene working ([ADR-0021](../docs/adr/0021-worker-thread-connection-hygiene.md)).
-- `public_ping` vs `delete_widget` on `/filtered-mcp/` — tool visibility filtered per user.
+- `slow_book_report` — the 30-second block; raise Inspector's timeout first (see [the slow tool](#a-deliberately-slow-tool)).
+- `current_username`, `update_author` — resolved user and permission gating (on `/user-mcp/`); `update_author` takes `author_id` and `name` arguments.
+- `db_thread_info` — which worker thread served the call and whether it still holds a DB connection; call `count_books` then this to watch connection hygiene working ([ADR-0021](../docs/adr/0021-worker-thread-connection-hygiene.md)).
+- `public_ping` vs `update_author` on `/filtered-mcp/` — tool visibility filtered per user.
 - `test_input_required_result_*` — the SEP-2322 elicitation/sampling/roots fixtures the conformance suite also runs against.

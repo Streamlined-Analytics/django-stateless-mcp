@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import (
@@ -24,14 +25,18 @@ from django_stateless_mcp import (
     django_request,
     request_state_security,
 )
+from example.models import Author, Book
+
+# Read at call time inside slow_book_report, so tests monkeypatch it to zero.
+SLOW_BOOK_REPORT_SECONDS = 30.0
 
 
-def _delete_widget_visible(user: AbstractBaseUser | AnonymousUser, tool_name: str) -> bool:
-    """delete_widget is visible only to users who may delete users."""
-    if tool_name != "delete_widget":
+def _update_author_visible(user: AbstractBaseUser | AnonymousUser, tool_name: str) -> bool:
+    """update_author is visible only to users holding the custom permission."""
+    if tool_name != "update_author":
         return True
     # AbstractBaseUser alone has no has_perm; anyone outside the mixin lacks the perm.
-    return isinstance(user, PermissionsMixin) and user.has_perm("auth.delete_user")
+    return isinstance(user, PermissionsMixin) and user.has_perm("example.can_update_authors")
 
 
 # In-process bus: one instance only; a real fleet supplies an external bus. See ADR-0020.
@@ -50,7 +55,7 @@ server_filtered = MCPServer(
     name="test-server",
     version="0.0.1",
     request_state_security=request_state_security(),
-    middleware=[PermittedToolsFilter(_delete_widget_visible)],
+    middleware=[PermittedToolsFilter(_update_author_visible)],
 )
 
 
@@ -60,12 +65,12 @@ def public_ping() -> str:
     return "pong"
 
 
-@server_filtered.tool(name="delete_widget")
-def filtered_delete_widget(ctx: Context, widget_id: int) -> str:
+@server_filtered.tool(name="update_author")
+def filtered_update_author(ctx: Context, author_id: int, name: str) -> str:
     """Hidden from users lacking the perm; also gates its own execution."""
-    if not django_request(ctx).user.has_perm("auth.delete_user"):
-        raise PermissionError("You may not delete widgets.")
-    return f"deleted widget {widget_id}"
+    if not django_request(ctx).user.has_perm("example.can_update_authors"):
+        raise PermissionError("You may not update authors.")
+    return _rename_author(author_id, name)
 
 
 # A second, independent instance modelling another worker in a fleet. Same
@@ -78,10 +83,35 @@ server_b = MCPServer(
 )
 
 
+def _rename_author(author_id: int, name: str) -> str:
+    """Rename the author, or raise ValueError if the id names no row."""
+    updated = Author.objects.filter(pk=author_id).update(name=name)
+    if not updated:
+        raise ValueError(f"no author with id {author_id}")
+    return f"author {author_id} renamed to {name}"
+
+
 @server.tool()
-def add(a: int, b: int) -> int:
-    """Add two integers."""
-    return a + b
+def list_books(ctx: Context) -> list[str]:
+    """List every book in the library as "Title (Author)" strings."""
+    django_request(ctx)
+    return [f"{book.title} ({book.author.name})" for book in Book.objects.select_related("author")]
+
+
+@server.tool()
+def slow_book_report(ctx: Context) -> list[str]:
+    """Return the book list after a deliberately long blocking pause.
+
+    Sleeps ``SLOW_BOOK_REPORT_SECONDS`` (30 s) in its worker thread — the
+    event loop and every other tool keep serving meanwhile, which you can
+    see by calling ``worker_pid`` while this runs. Raise Inspector's request
+    timeout before calling. Real applications should not block like this:
+    see the long-running-jobs recipe in the package docs for the
+    start-job-and-notify pattern.
+    """
+    django_request(ctx)
+    time.sleep(SLOW_BOOK_REPORT_SECONDS)
+    return [f"{book.title} ({book.author.name})" for book in Book.objects.select_related("author")]
 
 
 @server.tool()
@@ -134,7 +164,7 @@ def db_thread_info(ctx: Context) -> str:
     With connection hygiene working, ``connection_open`` reads ``False``
     even on a thread that served an ORM tool moments ago -- the bridge
     recycled it after that request (ADR-0021). Watch it live in Inspector:
-    call ``count_users`` then this.
+    call ``count_books`` then this.
     """
     django_request(ctx)
     thread_name = threading.current_thread().name
@@ -142,11 +172,11 @@ def db_thread_info(ctx: Context) -> str:
 
 
 @server.tool()
-def count_users(ctx: Context) -> int:
-    """Count users via the ORM, exercising sync DB access in a tool."""
+def count_books(ctx: Context) -> int:
+    """Count books via the ORM, exercising sync DB access in a tool."""
     # Raises LookupError off the view path; asserts the context wiring works.
     django_request(ctx)
-    return User.objects.count()
+    return Book.objects.count()
 
 
 class StubVerifier:
@@ -183,12 +213,12 @@ def current_username(ctx: Context) -> str:
 
 
 @server.tool()
-def delete_widget(ctx: Context, widget_id: int) -> str:
-    """A permission-locked tool: refuses a user without the perm."""
+def update_author(ctx: Context, author_id: int, name: str) -> str:
+    """A permission-locked tool: renames an author, refusing users without the perm."""
     user = django_request(ctx).user
-    if not user.has_perm("auth.delete_user"):
-        raise PermissionError("You may not delete widgets.")
-    return f"deleted widget {widget_id}"
+    if not user.has_perm("example.can_update_authors"):
+        raise PermissionError("You may not update authors.")
+    return _rename_author(author_id, name)
 
 
 async def resolve_no_user(token: str) -> None:

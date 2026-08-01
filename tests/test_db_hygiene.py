@@ -47,7 +47,7 @@ async def test_connections_are_recycled_in_the_worker_pool(async_client, monkeyp
 
     monkeypatch.setattr("django_stateless_mcp.views.close_old_connections", recording_close_old_connections)
 
-    await call_tool(async_client, "count_users")
+    await call_tool(async_client, "count_books")
 
     assert recycle_threads, "close_old_connections never ran"
     assert all("AnyIO worker" in name for name in recycle_threads), recycle_threads

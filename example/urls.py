@@ -7,6 +7,7 @@ assert against the same URLs the demo serves.
 
 from __future__ import annotations
 
+from django.contrib import admin
 from django.urls import URLPattern, URLResolver, path
 
 from django_stateless_mcp import mcp_view
@@ -22,6 +23,7 @@ from example.mcp_server import (
 )
 
 urlpatterns: list[URLPattern | URLResolver] = [
+    path("admin/", admin.site.urls),
     path("mcp/", mcp_view(server)),
     # The slash-less mount real consumers deploy: MCP clients default to /mcp,
     # and APPEND_SLASH never strips a slash, so the path must match exactly.

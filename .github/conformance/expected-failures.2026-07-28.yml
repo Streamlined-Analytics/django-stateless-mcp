@@ -2,8 +2,8 @@
 client: []
 
 server:
-  # Deliberate deviation: Django's ALLOWED_HOSTS owns host validation (ADR-0007).
-  - dns-rebinding-protection
+  # dns-rebinding-protection passes since the consumer-shaped middleware stack:
+  # CommonMiddleware calls get_host(), so ALLOWED_HOSTS rejects evil hosts (ADR-0007, ADR-0032).
 
   # Fixture gaps: tests/mcp_server.py lacks the scenario's test_* tools; close per phase.
   - completion-complete

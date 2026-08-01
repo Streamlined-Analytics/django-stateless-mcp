@@ -31,6 +31,13 @@ urlpatterns = [
 That is the whole integration. The endpoint is an ordinary Django view: it needs
 no session store, no sticky routing, and no dedicated process.
 
+## Mount path
+
+Mount the view at the exact path your MCP clients are configured with.
+Many clients default to `/mcp` with no trailing slash — mount `path("mcp", ...)` for them.
+Django's `APPEND_SLASH` cannot paper over a mismatch here: it only ever redirects *toward* a slash, on a 404, and MCP clients do not re-POST through a redirect (under `DEBUG` Django raises instead).
+Large tool payloads are subject to Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` (2.5 MB by default) and are refused with a plain 400 — raise the setting if your tools carry big arguments.
+
 ## What you get
 
 Clients call the endpoint directly — **there is no `initialize` handshake**, so a

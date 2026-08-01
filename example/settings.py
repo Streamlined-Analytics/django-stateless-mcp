@@ -35,16 +35,25 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
+    "django.contrib.messages",
     "django_stateless_mcp",
     # An installed app with an mcp.py, so autodiscovery has something to find.
     "example",
 ]
 
-# The standard stack a real project carries; without it request.user does not exist. See ADR-0018.
+# The full stack real consumer projects carry (ADR-0018), bracketed first-and-last
+# by prometheus-shaped response middleware the way the consumers run it. See ADR-0032.
 MIDDLEWARE = [
+    "example.middleware.BracketBeforeMiddleware",
+    "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "example.middleware.BracketAfterMiddleware",
 ]
 
 USE_TZ = True

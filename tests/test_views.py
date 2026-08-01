@@ -141,6 +141,40 @@ def test_view_serves_under_atomic_requests(client, atomic_requests):
     assert response.status_code == 200
 
 
+@pytest.fixture
+def atomic_requests_on_secondary_alias():
+    """Turn on per-request transactions for the non-default alias only.
+
+    Mirrors a real consumer running a second database with its own
+    ``ATOMIC_REQUESTS`` value. This is exactly the case a bare
+    ``non_atomic_requests`` decorator (which exempts only ``default``)
+    would miss -- ``make_view_atomic`` checks every alias.
+    """
+    connections.settings["apikeys"]["ATOMIC_REQUESTS"] = True
+    yield
+    connections.settings["apikeys"]["ATOMIC_REQUESTS"] = False
+
+
+def test_view_serves_with_atomic_requests_on_secondary_alias(client, atomic_requests_on_secondary_alias):
+    """The exemption must cover every configured alias, not just default."""
+    response = post(client, "tools/list")
+
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_view_serves_under_atomic_requests_under_asgi(async_client, atomic_requests):
+    """``get_response_async`` carries the same refusal; the exemption must hold there too."""
+    response = await async_client.post(
+        MCP_URL,
+        data=request_body("tools/list"),
+        content_type="application/json",
+        headers=MCP_HEADERS,
+    )
+
+    assert response.status_code == 200
+
+
 def test_unknown_tool_reports_an_error(client):
     """An unknown tool is reported in-band rather than crashing the view."""
     response = post(client, "tools/call", {"name": "nope", "arguments": {}})
@@ -291,6 +325,35 @@ def test_invalid_token_gets_401(client):
 def test_valid_token_reaches_the_tool(client):
     """A verified token dispatches, and the SDK's get_access_token sees it."""
     response = post_auth(client, AUTH_URL, token="good-token")
+
+    assert response.status_code == 200
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": "test-client"}
+
+
+@pytest.mark.anyio
+async def test_missing_token_gets_401_under_asgi(async_client):
+    """Bearer enforcement holds on the native async path consumers deploy."""
+    response = await async_client.post(
+        AUTH_URL,
+        data=request_body("tools/call", {"name": "token_client", "arguments": {}}),
+        content_type="application/json",
+        headers=MCP_HEADERS,
+    )
+
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"].startswith("Bearer ")
+
+
+@pytest.mark.anyio
+async def test_valid_token_reaches_the_tool_under_asgi(async_client):
+    """A verified token dispatches under ASGI, not just the WSGI test path."""
+    response = await async_client.post(
+        AUTH_URL,
+        data=request_body("tools/call", {"name": "token_client", "arguments": {}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
 
     assert response.status_code == 200
     result = json.loads(response.content)["result"]

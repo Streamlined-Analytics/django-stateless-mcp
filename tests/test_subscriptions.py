@@ -119,6 +119,34 @@ async def test_unconsumed_stream_close_cancels_dispatch(async_client):
     assert not lingering, f"dispatch leaked: {lingering}"
 
 
+@pytest.mark.anyio
+async def test_middleware_processes_the_listen_stream_response(async_client):
+    """Response-processing middleware must not consume or break the stream.
+
+    Consumers bracket every response with prometheus-style middleware; a
+    ``process_response`` that touched ``response.content`` would raise on the
+    streaming response, and one that iterated it would eat the frames. The
+    stamped headers prove the middleware ran; the ack frame proves the
+    stream survived it. See ADR-0032.
+    """
+    response = await async_client.post(
+        MCP_URL, data=listen_body(request_id=9), content_type="application/json", headers=LISTEN_HEADERS
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert response.headers["X-Example-Bracket-Outer"] == "seen"
+    assert response.headers["X-Example-Bracket-Inner"] == "seen"
+
+    stream = aiter(response.streaming_content)
+    reader = SSEFrameReader(stream)
+    try:
+        ack = await reader.next_frame()
+        assert ack["method"] == "notifications/subscriptions/acknowledged"
+    finally:
+        await stream.aclose()
+
+
 def test_listen_under_wsgi_is_refused(client):
     """A WSGI deployment cannot hold a live stream, and says so.
 

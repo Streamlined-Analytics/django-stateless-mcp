@@ -13,9 +13,10 @@ An MCP endpoint becomes an ordinary Django view: no sessions, no SSE, no sticky 
   directly. No separate MCP service to build, secure, and operate.
 - **It scales like the rest of your Django app** — any worker on any instance
   can serve any request, including an elicitation answer.
-- **Tools can ask the user questions** — pause mid-call for missing form
-  fields or an explicit approval, then resume on whichever worker the answer
-  lands on.
+- **Tools can ask the user questions** — fill in missing form fields, or
+  require explicit confirmation before an update or delete, resuming on
+  whichever worker the answer lands on — see the
+  [elicitation recipe](recipes/elicitation-forms-and-confirmations.md).
 - **Kick off a long job, keep chatting, and the result comes back when it's
   ready** — see the [long-running jobs recipe](recipes/long-running-jobs.md).
 - **Your authentication and permissions work inside tools** — bearer auth

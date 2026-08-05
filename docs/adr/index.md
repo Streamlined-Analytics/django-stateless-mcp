@@ -46,3 +46,4 @@ until then).
 | [ADR-0033](0033-book-author-example-domain.md) | The example project gets a Book/Author domain, admin, and a slow tool |
 | [ADR-0034](0034-encourage-tool-annotations.md) | Encourage tool annotations, demonstrated on the example's Book/Author tools |
 | [ADR-0035](0035-concise-docs-link-out-no-adr-references.md) | User-facing docs stay concise, link out, and never cite ADRs |
+| [ADR-0036](0036-elicitation-recipe.md) | A worked elicitation recipe — forms and destructive-action confirmations |

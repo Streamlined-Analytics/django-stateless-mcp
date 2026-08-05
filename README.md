@@ -29,10 +29,11 @@ sticky routing, and no dedicated single-process service.
   can serve any request, including an elicitation answer. See
   [Why stateless](https://django-stateless-mcp.readthedocs.io/en/stable/why-stateless/)
   for what changed on 2026-07-28 to make that possible.
-* **Tools can ask the user questions** — pause mid-call for missing form
-  fields or an explicit approval, then resume on whichever worker the answer
-  lands on: `request_state_security()` keys the resume state from
-  `SECRET_KEY`.
+* **Tools can ask the user questions** — fill in missing form fields, or
+  require explicit confirmation before an update or delete, resuming on
+  whichever worker the answer lands on: `request_state_security()` keys the
+  resume state from `SECRET_KEY`. See the
+  [elicitation recipe](https://django-stateless-mcp.readthedocs.io/en/stable/recipes/elicitation-forms-and-confirmations/).
 * **Kick off a long job, keep chatting, and the result comes back when it's
   ready** — see the
   [long-running jobs recipe](https://django-stateless-mcp.readthedocs.io/en/stable/recipes/long-running-jobs/).

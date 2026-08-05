@@ -287,6 +287,10 @@ covers in-flight elicitations too.
 A tampered or expired `requestState` is rejected with a protocol error —
 never accepted, never a crash.
 
+For the worked patterns — form filling backed by a Django form, and
+confirmation before a destructive write — see the
+[elicitation recipe](recipes/elicitation-forms-and-confirmations.md).
+
 ## Structured request logging
 
 Install the optional extra and register the middleware:

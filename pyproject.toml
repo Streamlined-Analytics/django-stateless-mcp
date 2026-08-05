@@ -77,8 +77,6 @@ typecheck = [
 required-version = ">=0.9.17"
 default-groups = [ "dev" ]
 exclude-newer = "1 week"
-# Temporary, remove on/after 2026-08-04: see ADR-0005 and issue #12.
-exclude-newer-package = { mcp = "2026-07-29T23:59:59Z", mcp-types = "2026-07-29T23:59:59Z" }
 package = true
 
 [tool.ruff]

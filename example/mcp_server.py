@@ -18,6 +18,7 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.subscriptions import InMemorySubscriptionBus, PromptsListChanged, ToolsListChanged
+from mcp.types import ToolAnnotations
 
 from django_stateless_mcp import (
     PermittedToolsFilter,
@@ -65,7 +66,11 @@ def public_ping() -> str:
     return "pong"
 
 
-@server_filtered.tool(name="update_author")
+# Annotations are client-facing hints, not enforcement — the has_perm check below stays the boundary.
+@server_filtered.tool(
+    name="update_author",
+    annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True, open_world_hint=False),
+)
 def filtered_update_author(ctx: Context, author_id: int, name: str) -> str:
     """Hidden from users lacking the perm; also gates its own execution."""
     if not django_request(ctx).user.has_perm("example.can_update_authors"):
@@ -91,14 +96,14 @@ def _rename_author(author_id: int, name: str) -> str:
     return f"author {author_id} renamed to {name}"
 
 
-@server.tool()
+@server.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False))
 def list_books(ctx: Context) -> list[str]:
     """List every book in the library as "Title (Author)" strings."""
     django_request(ctx)
     return [f"{book.title} ({book.author.name})" for book in Book.objects.select_related("author")]
 
 
-@server.tool()
+@server.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False))
 def slow_book_report(ctx: Context) -> list[str]:
     """Return the book list after a deliberately long blocking pause.
 
@@ -171,7 +176,7 @@ def db_thread_info(ctx: Context) -> str:
     return f"thread={thread_name} connection_open={connection.connection is not None}"
 
 
-@server.tool()
+@server.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False))
 def count_books(ctx: Context) -> int:
     """Count books via the ORM, exercising sync DB access in a tool."""
     # Raises LookupError off the view path; asserts the context wiring works.

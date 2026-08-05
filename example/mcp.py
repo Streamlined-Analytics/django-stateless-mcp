@@ -28,12 +28,13 @@ from mcp.types import (
     ListRootsResult,
     SamplingMessage,
     TextContent,
+    ToolAnnotations,
 )
 
 from example.mcp_server import server, server_b
 
 
-@server.tool()
+@server.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False))
 def book_slug(title: str) -> str:
     """Slugify a book title, the way a bookstore URL would.
 

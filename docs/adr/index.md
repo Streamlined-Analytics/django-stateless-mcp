@@ -47,3 +47,4 @@ until then).
 | [ADR-0034](0034-encourage-tool-annotations.md) | Encourage tool annotations, demonstrated on the example's Book/Author tools |
 | [ADR-0035](0035-concise-docs-link-out-no-adr-references.md) | User-facing docs stay concise, link out, and never cite ADRs |
 | [ADR-0036](0036-elicitation-recipe.md) | A worked elicitation recipe — forms and destructive-action confirmations |
+| [ADR-0037](0037-production-oauth-default-posture.md) | Docs recommend OAuth (DOT + DCR) as the production default posture |

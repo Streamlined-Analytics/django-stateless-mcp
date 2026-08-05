@@ -38,10 +38,7 @@ from reports.tasks import generate_report
 def start_quarterly_report(ctx: Context, quarter: str) -> str:
     """Start generating the quarterly report; returns a job id."""
     job = generate_report.delay(quarter, django_request(ctx).user.pk)
-    return (
-        f"Report for {quarter} started (job {job.id}). "
-        f"You will be notified at report://{job.id} when it is ready."
-    )
+    return f"Report for {quarter} started (job {job.id}). You will be notified at report://{job.id} when it is ready."
 ```
 
 The tool is a plain sync function — it runs in a worker thread, so the ORM and Celery's `.delay()` are both fine — and it returns in milliseconds regardless of how long the report takes.

@@ -52,5 +52,6 @@ nav:
   - Try it live: example.md
   - API reference: reference.md
   - Recipes:
+      - Elicitation — forms & confirmations: recipes/elicitation-forms-and-confirmations.md
       - OAuth & permissions: recipes/oauth-and-permissions.md
       - Long-running jobs: recipes/long-running-jobs.md

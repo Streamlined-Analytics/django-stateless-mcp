@@ -13,26 +13,35 @@ The quick start below shows the package's thesis live in about two minutes; ever
 
    (Have uv installed? `just demo-asgi` runs the same fleet on the host — see [server variants](#server-variants-and-options).)
 
-2. **Run MCP Inspector** and open the tokened URL it prints:
+2. **Run MCP Inspector** and open the `http://localhost:6274/?MCP_INSPECTOR_API_TOKEN=…` URL it prints (the UI is the `6274` URL — not the sandbox one):
 
    ```sh
    npx @modelcontextprotocol/inspector
    ```
 
+   (Working on a remote machine? Forward port 6274 — the UI and its proxy share it.)
    (Inspector, not Claude Code — Claude Code cannot drive elicitation yet; see [Connect Claude Code](#connect-claude-code-partial-as-of-july-2026).)
 
-3. **Connect**: Transport Type **Streamable HTTP**, URL `http://127.0.0.1:8000/mcp/`.
+3. **Add the server**: click **Add Servers** → **+ Add manually**.
+   In the *Add server* dialog, set **Server ID** to anything (`django-stateless-mcp`), open the **Transport** dropdown and pick **streamable-http**, and set the **URL** field that appears to `http://127.0.0.1:8000/mcp/`.
+   Click **Add** — the server appears as a card in the list, still disconnected.
 
 4. **Set Protocol Era to "Modern" — this is the step everyone misses.**
-   Open the server entry's settings (the edit control on the server entry); in the **Options** section, change **Protocol Era** from its default, *Legacy (2025-11-25 handshake)*, to **Modern**, which pins `2026-07-28`.
+   On the new card, click **Settings** (the rightmost button — not **Edit**, which only reopens the ID/URL form); in the **Options** section, change **Protocol Era** from its default, *Legacy (2025-11-25 handshake)*, to **Modern (2026-07-28, sessionless)**, then close the dialog.
    Don't use *Auto* — it can fall back to legacy.
-   A legacy-era connection is what makes elicitation tools fail with *"Handler returned an invalid result"*; a connected modern session shows a **Modern** era badge.
+   A legacy-era connection is what makes elicitation tools fail with *"Handler returned an invalid result"*.
 
-5. **Call a tool**: **Tools** tab → **List Tools** → run `add` with `a=2, b=3` → `5`.
+5. **Connect**: flip the toggle switch on the card.
+   The card reads **Connected** with an **MCP 2026-07-28** badge, and the message log on the right gains a **Modern** badge — its first entry is `server/discover`, with no `initialize` handshake anywhere.
+   (Inspector drives one connection at a time; while connected, every other server card is greyed out.)
 
-6. **Run the elicitation round-trip**: run `test_input_required_result_elicitation`.
-   Inspector pauses at a pending-request modal asking for a name; submit it, and Inspector automatically retries with the returned `requestState` → the tool completes with a greeting.
-   In the server log that is two independent requests — `exit=input_required`, then `exit=completed` — with no state held between them.
+6. **Call a tool**: open the **Tools** tab that appeared in the header.
+   The tool list loads by itself — there is no "List Tools" button.
+   Click `add`, enter `2` and `3` in the **A** and **B** fields, and click **Execute Tool** → **Results** shows `5`.
+
+7. **Run the elicitation round-trip**: select `test_input_required_result_elicitation` and click **Execute Tool**.
+   Inspector pauses at an **Elicitation Request** modal asking for a name; type one and **Submit**, and Inspector automatically retries with the returned `requestState` → **Results** shows the greeting.
+   The message log shows the two independent requests — the first marked **input required**, the retry **complete** — and the server log shows `exit=input_required`, then `exit=completed`, with no state held between them.
 
 That is the package's thesis, observed live.
 The harder proofs — the retry answered by a **different server instance**, the whole fleet **killed and restarted mid-flow**, tampered state rejected — are in [the curl walkthrough](#see-statelessness-with-your-own-eyes-curl).
@@ -106,24 +115,28 @@ docker compose exec demo python manage.py seed --revoke-delete
 
 (Running the host fleet instead? `uv run python manage.py seed --revoke-delete` — the bind mount means both forms reach the same database.)
 
-1. Add a second Inspector server: URL `http://127.0.0.1:8000/filtered-mcp/`, Protocol Era **Modern**, and in the settings' auth section a bearer token of `good-token`.
-2. Connect → List Tools. With the permission revoked, you see only `public_ping` — `delete_widget` is hidden.
-3. Grant the permission and re-list:
+1. Add a second Inspector server the same way as in the quick start: **Add Servers** → **+ Add manually**, Server ID `filtered-mcp`, Transport **streamable-http**, URL `http://127.0.0.1:8000/filtered-mcp/`.
+2. On its card, open **Settings**; set **Protocol Era** to **Modern** in **Options**, then in **Custom Headers** click **+ Add Header** and set Key `Authorization`, Value `Bearer good-token`.
+3. Connect it (disconnect the first server first — its card's toggle, or the header's disconnect button; other cards are greyed out while a connection is up) and open **Tools**.
+   With the permission revoked, you see only `public_ping` — `delete_widget` is hidden.
+4. Grant the permission and refresh the list:
 
    ```sh
    docker compose exec demo python manage.py seed --grant-delete
    ```
 
-   `delete_widget` appears (each request re-evaluates — nothing is cached anywhere).
-   Run it with `widget_id: 1` → `"deleted widget 1"`.
-   (Run it *without* `widget_id` and you get a validation error, not a permission refusal — don't misread it in permission tests.)
-4. Revoke, and — **without re-listing** — run `delete_widget` again from the still-visible entry:
+   The Tools panel does not refetch on its own: toggle the connection off and on, then reopen **Tools**.
+   (Or replay the `tools/list` entry in the message log — the panel shows the new list after you click away from **Tools** and back.)
+   `delete_widget` appears (each request re-evaluates — nothing is cached server-side).
+   Run it with **Widget Id** `1` → `"deleted widget 1"`.
+   (Run it *without* a Widget Id and you get a validation error, not a permission refusal — don't misread it in permission tests.)
+5. Revoke, and — **without refreshing the list** — run `delete_widget` again from the still-visible entry:
 
    ```sh
    docker compose exec demo python manage.py seed --revoke-delete
    ```
 
-   It is refused: *"You may not delete widgets."*
+   It is refused with a red **Tool Error**: *"You may not delete widgets."*
    The client could still name the tool; hiding it from `tools/list` was never the protection. **Tools must gate their own execution** ([ADR-0014](../docs/adr/0014-user-and-tool-permissions.md)).
 
 For the user-resolution half, connect to `/user-mcp/` (same token): `current_username` returns `mcp-test-user`.

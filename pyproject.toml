@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "django-stateless-mcp"
-version = "0.1.8"
+version = "0.1.9"
 description = "Stateless Model Context Protocol (MCP) server for Django, built on the 2026-07-28 spec."
 readme = "README.md"
 license = { text = "MIT" }

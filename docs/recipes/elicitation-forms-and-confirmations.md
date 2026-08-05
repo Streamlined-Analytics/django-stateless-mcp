@@ -92,7 +92,9 @@ class CustomerForm(forms.ModelForm):
 
 @server.tool()
 def create_customer(
-    ctx: Context, name: str = "", email: str = ""
+    ctx: Context,
+    name: str = "",
+    email: str = "",
 ) -> str | InputRequiredResult:
     """Create a customer, asking for whatever the form finds missing or invalid."""
     supplied = {"name": name, "email": email}
@@ -100,22 +102,19 @@ def create_customer(
     if isinstance(answer, ElicitResult):
         if answer.action != "accept":
             return "Creation cancelled."
-        supplied |= {
-            k: v for k, v in (answer.content or {}).items() if isinstance(v, str)
-        }
+        corrections = answer.content or {}
+        supplied |= {k: v for k, v in corrections.items() if isinstance(v, str)}
 
     form = CustomerForm(data=supplied)
     if form.is_valid():
         customer = form.save()
         return f"Created customer {customer.pk}: {customer.name}"
 
-    messages = "; ".join(
-        f"{field}: {' '.join(errors)}" for field, errors in form.errors.items()
-    )
+    problems = [f"{field}: {' '.join(errors)}" for field, errors in form.errors.items()]
     return InputRequiredResult(
         input_requests={
             "corrections": _ask(
-                f"Please correct: {messages}",
+                f"Please correct: {'; '.join(problems)}",
                 {field: {"type": "string"} for field in form.errors},
             )
         }

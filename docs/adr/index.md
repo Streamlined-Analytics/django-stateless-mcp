@@ -44,3 +44,4 @@ until then).
 | [ADR-0031](0031-non-atomic-requests-exemption.md) | `mcp_view()` exempts itself from `ATOMIC_REQUESTS` on every alias |
 | [ADR-0032](0032-consumer-realistic-example-settings.md) | The example project runs consumer-realistic settings, and the suite tests the gaps |
 | [ADR-0033](0033-book-author-example-domain.md) | The example project gets a Book/Author domain, admin, and a slow tool |
+| [ADR-0034](0034-encourage-tool-annotations.md) | Encourage tool annotations, demonstrated on the example's Book/Author tools |

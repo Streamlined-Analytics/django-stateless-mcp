@@ -5,6 +5,25 @@ This recipe wires an MCP endpoint to
 MCP client such as Claude authenticates with OAuth, then permission-locks and
 hides tools per Django user.
 
+**This is the posture to default to in production.**
+An open endpoint can only ever serve anonymous callers; verifying each request
+is what makes the package's access-control features work, and it is what turns
+an MCP server from "some tools on a URL" into a real per-user product surface:
+
+- **Every request is authenticated** — per-request bearer verification, the
+  natural fit for a stateless protocol; unauthenticated calls get a clean `401`
+  challenge, out-of-scope tokens a `403`.
+- **A real Django user** — the verified token resolves to `request.user`, so
+  the users, groups, and permissions your project already manages apply inside
+  tools unchanged.
+- **Access control per tool** — tools gate execution with `user.has_perm(...)`,
+  and `PermittedToolsFilter` hides tools a user may not use from `tools/list`,
+  so different users see and can do different things through the same endpoint.
+- **Clients onboard themselves** — Dynamic Client Registration
+  ([django-oauth-toolkit-dcr](https://pypi.org/project/django-oauth-toolkit-dcr/))
+  lets an MCP client register automatically, so connecting an agent never means
+  handing out client credentials by hand.
+
 The layers are independent, and only the last is this package's job:
 
 | Layer | Package | Serves |

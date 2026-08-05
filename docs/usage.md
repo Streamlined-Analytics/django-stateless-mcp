@@ -253,8 +253,19 @@ challenge; a valid token lacking a required scope gets a `403`.
 Inside tools, the SDK's own `get_access_token()` returns the verified token.
 
 Without a `token_verifier` the endpoint is open, and protecting it is your
-project's responsibility — session auth behind `login_required`, a private
-network, or whatever the deployment calls for.
+project's responsibility — fine in development, rarely right in production.
+In production, require callers to authenticate: pair
+[django-oauth-toolkit](https://django-oauth-toolkit.readthedocs.io/) (the
+authorization server, inside your project) with
+[django-oauth-toolkit-dcr](https://pypi.org/project/django-oauth-toolkit-dcr/)
+(so MCP clients register themselves), and resolve the verified token to a
+real Django user.
+Authentication is what switches on the rest of the package's power:
+`request.user` stops being anonymous, tools gate execution with
+`user.has_perm(...)`, and `PermittedToolsFilter` shows each user only the
+tools they may use.
+The [OAuth & permissions recipe](recipes/oauth-and-permissions.md) wires the
+whole stack.
 
 ## Elicitation that survives your load balancer
 

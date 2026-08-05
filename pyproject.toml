@@ -48,6 +48,8 @@ dev = [
 ]
 test = [
   "coverage",
+  # Runtime shim letting the example's admin classes carry django-stubs generics.
+  "django-stubs-ext",
   # gunicorn + uvicorn boot the real multi-worker fleets in test_multiworker.
   "gunicorn",
   "pytest",

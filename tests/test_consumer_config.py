@@ -103,7 +103,7 @@ def test_scheme_stays_http_without_proxy_setting(client):
 
 def test_bracketing_middleware_stamps_the_mcp_response(client):
     """Response-processing middleware first and last in the stack sees MCP responses."""
-    response = post(client, "tools/call", {"name": "add", "arguments": {"a": 1, "b": 2}})
+    response = post(client, "tools/call", {"name": "book_slug", "arguments": {"title": "Django"}})
 
     assert response.status_code == 200
     assert response.headers["X-Example-Bracket-Outer"] == "seen"

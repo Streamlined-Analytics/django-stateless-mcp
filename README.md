@@ -3,9 +3,17 @@
 ![PyPI version](https://img.shields.io/pypi/v/django-stateless-mcp.svg)
 [![Documentation status](https://readthedocs.org/projects/django-stateless-mcp/badge/?version=stable)](https://django-stateless-mcp.readthedocs.io/)
 
-A stateless Model Context Protocol server for Django, built on the **2026-07-28**
-spec. An MCP endpoint becomes an ordinary Django view — no sessions, no SSE, no
-sticky routing, and no dedicated single-process service.
+An [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server is
+how AI agents — Claude Code, ChatGPT, and the assistants built on them —
+connect to your application in a controlled way: they see and call only the
+tools you choose to expose, under the permissions you enforce. As your users
+lean on AI for more of their work, it pays to be ready to accommodate their
+agents without loosening the protections Django already gives your data and
+infrastructure — and that is what this package is for.
+
+django-stateless-mcp is a stateless MCP server for Django, built on the
+**2026-07-28** spec. An MCP endpoint becomes an ordinary Django view — no
+sessions, no SSE, no sticky routing, and no dedicated single-process service.
 
 * [GitHub](https://github.com/Streamlined-Analytics/django-stateless-mcp/) | [PyPI](https://pypi.org/project/django-stateless-mcp/) | [Documentation](https://django-stateless-mcp.readthedocs.io/)
 * Created by [Ben Atkinson](https://streamlinedanalytics.co.uk) | GitHub [@BenA-SA](https://github.com/BenA-SA)
@@ -115,10 +123,11 @@ Each is exercised in CI, along with an advisory job tracking the SDK's git main.
 
 ## Try it live
 
-The repo ships a runnable example project. `just demo-asgi` starts it behind
-four worker processes; the [example README](example/README.md) walks through
-watching an elicitation started on one worker resume on another — the
-package's thesis, observable with curl or any MCP client.
+The repo ships a runnable example project. `docker compose up` starts it
+behind four worker processes (no local uv or Python needed; `just demo-asgi`
+is the host-run equivalent); the [example README](example/README.md) quick
+start walks through watching an elicitation started on one worker resume on
+another — the package's thesis, observable with curl or any MCP client.
 
 ## Documentation
 

@@ -6,15 +6,15 @@ It exists so you can experience the stateless model rather than take our word fo
 ```sh
 git clone https://github.com/Streamlined-Analytics/django-stateless-mcp
 cd django-stateless-mcp
-just demo-asgi
+docker compose up
 ```
 
-`just demo-asgi` migrates a local SQLite database, seeds a demo user, and starts **four worker processes** behind one port with no sticky routing.
+`docker compose up` migrates a local SQLite database, seeds a small book library plus demo users, and starts **four worker processes** behind one port with no sticky routing — no local uv, Python, or just required.
+The domain is a deliberately familiar one — books and authors, in the spirit of Django's own documentation: `list_books` reads seeded rows through the ORM, `update_author` gates on a custom `example.can_update_authors` permission you toggle live in the Django admin (`/admin/`, `admin`/`admin`) while MCP Inspector re-lists the tools, and `slow_book_report` blocks for 30 seconds to show a slow tool occupying one worker thread — never the event loop or the fleet.
 That fleet is the point: the `worker_pid` tool shows different processes answering successive calls, and an elicitation started on one worker resumes on another, because the encrypted `requestState` is keyed from `SECRET_KEY` rather than the SDK's per-process default.
 You can stop the server mid-elicitation, start it again, and the resume still completes — no process ever held the flow.
 
-`just demo` runs the same project under WSGI (Django's dev server), because the view serves both.
-No local uv or Python? `docker compose up` boots the same four-worker fleet in a container.
+Have uv installed? `just demo-asgi` runs the same fleet on the host, `just demo-gunicorn` runs it under WSGI gunicorn, and `just demo` runs a single-process WSGI dev server — the view serves both deployment models.
 
 The example is not a separate artifact that can drift: the package's test suite inherits its settings and drives the same servers and URLs, and the MCP conformance suite in CI boots it over real HTTP.
 What the demo serves is exactly what the tests assert on.
@@ -29,4 +29,4 @@ That is a client gap, not a server one; the same tools will work unchanged once 
 
 Any other streamable-HTTP MCP client can register `http://127.0.0.1:8000/mcp/`; the bearer endpoints take `Authorization: Bearer good-token` (a published demo constant).
 
-The complete step-by-step walkthrough — Inspector setup including the era setting, the elicitation and permission cycles, curl transcripts for the cross-worker and kill-the-fleet resumes — lives in the repository's [`example/README.md`](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/example/README.md).
+The repository's [`example/README.md`](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/example/README.md) opens with a numbered quick start covering all of the above, then the complete walkthrough — the elicitation and permission cycles, curl transcripts for the cross-worker and kill-the-fleet resumes, and the subscription-stream demo.

@@ -40,5 +40,8 @@ until then).
 | [ADR-0027](0027-adamchainz-tooling-adoptions.md) | Tooling adoptions from the django-linear-migrations / django-mysql review |
 | [ADR-0028](0028-python-310-floor.md) | Python floor lowered to 3.10, tracking Django 5.2's own support |
 | [ADR-0029](0029-benefits-led-messaging.md) | Benefits-led messaging across the README and docs |
+| [ADR-0030](0030-quick-start-first-example-guide.md) | The example README is a quick-start guide, not a reference dump |
 | [ADR-0031](0031-non-atomic-requests-exemption.md) | `mcp_view()` exempts itself from `ATOMIC_REQUESTS` on every alias |
 | [ADR-0032](0032-consumer-realistic-example-settings.md) | The example project runs consumer-realistic settings, and the suite tests the gaps |
+| [ADR-0033](0033-book-author-example-domain.md) | The example project gets a Book/Author domain, admin, and a slow tool |
+| [ADR-0034](0034-encourage-tool-annotations.md) | Encourage tool annotations, demonstrated on the example's Book/Author tools |

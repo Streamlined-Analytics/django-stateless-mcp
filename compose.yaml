@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Shares example/db.sqlite3, so host-run `manage.py seed --grant-delete` reaches the container.
+      # Shares example/db.sqlite3, so host-run `manage.py seed --grant-update-authors` reaches the container.
       - ./example:/app/example
     command: >
       sh -c "python manage.py migrate &&

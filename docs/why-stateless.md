@@ -1,6 +1,7 @@
 # Why stateless
 
-Most people arrive at this package without knowing what changed on 2026-07-28.
+Most people arrive at this package without knowing
+[what changed on 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/changelog).
 This page explains the problem the MCP spec solved, and why that makes a Django
 MCP package worth having at all.
 
@@ -37,9 +38,9 @@ Three Spec Enhancement Proposals do the load-bearing work:
 
 | SEP | Change |
 |---|---|
-| **SEP-2567** | Removes the `Mcp-Session-Id` header and the protocol-level session. No sticky routing needed. |
-| **SEP-2575** | Removes the `initialize`/`initialized` handshake. Metadata travels on every request, so a load balancer can route without parsing the JSON body. |
-| **SEP-2322** | Multi round-trip requests — the stateless replacement for SSE-based elicitation. |
+| [**SEP-2567**](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/2567-sessionless-mcp.md) | Removes the `Mcp-Session-Id` header and the protocol-level session. No sticky routing needed. |
+| [**SEP-2575**](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/2575-stateless-mcp.md) | Removes the `initialize`/`initialized` handshake. Metadata travels on every request, so a load balancer can route without parsing the JSON body. |
+| [**SEP-2322**](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/2322-MRTR.md) | Multi round-trip requests — the stateless replacement for SSE-based elicitation. |
 
 Elicitation becomes a **retry** rather than a held connection:
 

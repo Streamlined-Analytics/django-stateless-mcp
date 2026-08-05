@@ -36,7 +36,10 @@ no session store, no sticky routing, and no dedicated process.
 Mount the view at the exact path your MCP clients are configured with.
 Many clients default to `/mcp` with no trailing slash — mount `path("mcp", ...)` for them.
 Django's `APPEND_SLASH` cannot paper over a mismatch here: it only ever redirects *toward* a slash, on a 404, and MCP clients do not re-POST through a redirect (under `DEBUG` Django raises instead).
-Large tool payloads are subject to Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` (2.5 MB by default) and are refused with a plain 400 — raise the setting if your tools carry big arguments.
+
+## Large tool payloads
+
+Payloads are subject to Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` (2.5 MB by default) and are refused with a plain 400 — raise the setting if your tools carry big arguments.
 
 ## What you get
 
@@ -66,8 +69,7 @@ configuration.
 
 Host checking is left to Django's `ALLOWED_HOSTS`. The SDK's own DNS-rebinding
 protection is disabled deliberately, so that host policy has a single home in
-your project settings rather than two. See
-[ADR-0007](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/docs/adr/0007-stateless-view-bridge.md).
+your project settings rather than two.
 
 ## Registering tools from your apps
 
@@ -103,7 +105,7 @@ at startup rather than being silently ignored.
 
 ## Annotating tools (optional, encouraged)
 
-Tool annotations tell clients what kind of operation a tool performs, so a well-behaved client can build better UX around your server — auto-approve reads, ask for confirmation before destructive calls, retry idempotent ones safely.
+Tool annotations tell clients what kind of operation a tool performs — read-only, destructive, idempotent, open-world — so a well-behaved client can build better UX around your server: auto-approve reads, ask for confirmation before destructive calls, retry idempotent ones safely.
 They are optional, but cheap to add and worth adding:
 
 ```python
@@ -116,21 +118,7 @@ def lookup_order(order_id: int) -> str:
     ...
 ```
 
-The hints available on the `2026-07-28` spec, illustrated with the [example project's](example.md) Book/Author tools:
-
-- `read_only_hint` — the tool changes nothing.
-  `list_books` and `count_books` set it true; a client can call them freely without confirmation.
-- `destructive_hint` — the tool may overwrite or delete existing data, as opposed to additive-only changes.
-  `update_author` sets it true because it overwrites an author's name; a `create_book` tool would set it false.
-  Defaults to true for non-read-only tools — the spec assumes the worst about a write unless told otherwise.
-- `idempotent_hint` — repeating the call with the same arguments has no additional effect, so it is safe to retry.
-  `update_author` sets it true: renaming author 1 to the same name twice leaves the same state.
-  A `charge_customer` tool would leave it false.
-- `open_world_hint` — the tool interacts with external entities (web search, sending email) rather than a closed domain.
-  Every example tool sets it false: they touch only the project's own database.
-- `title` — a human-readable display name for the tool.
-
-This list belongs to the MCP spec and may grow in future revisions — the authoritative reference for the version this package implements is the [`ToolAnnotations` schema](https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations).
+The hints and their semantics belong to the MCP spec — the authoritative reference for the version this package implements is the [`ToolAnnotations` schema](https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations), and the [example project's](example.md) Book/Author tools set every hint for a working illustration.
 
 Annotations are **hints, not enforcement**: the spec instructs clients to treat them as untrusted, and nothing verifies a tool marked read-only actually is.
 Keep authorization where it already lives — permissions checked inside the tool, per the [OAuth & permissions recipe](recipes/oauth-and-permissions.md).
@@ -164,21 +152,16 @@ On a project with neither, a tool touching `.user` raises `AttributeError` —
 keep the standard auth middleware in `MIDDLEWARE`, as any conventional Django
 project does.
 
-The view is CSRF-exempt, so `CsrfViewMiddleware` in that standard stack does
-not 403 your MCP endpoint.
-CSRF forges the browser's ambient cookie credentials; MCP clients hold no CSRF
-token and authenticate with a bearer header an attacker's page cannot set —
-the same posture DRF takes for token-authenticated APIs.
+The view is CSRF-exempt — MCP clients authenticate with a bearer header
+rather than the ambient cookies CSRF forgery relies on, the same posture DRF
+takes for token-authenticated APIs.
 If you deliberately put cookie-session authentication in front of an MCP
 endpoint, that protection becomes yours to provide.
 
-The view is also exempt from `ATOMIC_REQUESTS`, on every configured database
-alias.
-Django refuses to serve an async view on an alias running per-request
-transactions, so without the exemption the endpoint would 500 on every request
-in any project with `ATOMIC_REQUESTS = True` — cookiecutter-django's default.
-Per-request transactions never apply to MCP requests as a result: tools that
-need transactional writes open their own `transaction.atomic()` blocks.
+The view is also exempt from `ATOMIC_REQUESTS` on every database alias —
+Django refuses to serve an async view under per-request transactions — so
+tools that need transactional writes open their own `transaction.atomic()`
+blocks.
 
 ## Sync tools and the ORM
 

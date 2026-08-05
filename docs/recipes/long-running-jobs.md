@@ -92,7 +92,7 @@ Fifty users each holding a stream is unmeasurable; this is the same economics as
 
 Two real requirements:
 
-- **ASGI only.** Under WSGI a held stream would pin an entire worker process for its lifetime — exactly the per-flow cost this package exists to remove — so the view answers `501` there rather than let you do it badly ([ADR-0020](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/docs/adr/0020-subscription-streams.md)).
+- **ASGI only.** Under WSGI a held stream would pin an entire worker process for its lifetime — exactly the per-flow cost this package exists to remove — so the view answers `501` there rather than let you do it badly.
   Everything else in this recipe (the tool, the task, the fetch) works under both.
 - **An external bus once you have more than one process** — see the wrinkle above.
 

@@ -54,7 +54,7 @@ The harder proofs — the retry answered by a **different server instance**, the
 
 ### What this project is
 
-The example plays two roles ([ADR-0015](../docs/adr/0015-runnable-example-project.md)):
+The example plays two roles:
 
 - **Launch it** to exercise the package as actual AI infrastructure — watch elicitation resume across worker processes, toggle tool permissions live, kill the whole fleet mid-flow and resume anyway.
 - **The test suite reuses it**: `tests/settings.py` inherits `example/settings.py`, and the pytest suite drives the same servers and URLs you can boot here.
@@ -72,7 +72,7 @@ just demo           # the same project under WSGI (single-process dev server)
 
 The Docker variant bind-mounts `example/`, so it shares `db.sqlite3` with the host — the in-container and host-run `seed` commands below reach the same database.
 Everything below works identically against either fleet — connect Inspector to whichever is running and watch `worker_pid` and the structlog output to see which processes serve.
-The automated version of the fleet proofs is `just multiworker` ([ADR-0019](../docs/adr/0019-multiworker-harness.md)): it boots both fleets itself and asserts the kill-the-fleet elicitation resume, so you only need the demo targets for interactive testing.
+The automated version of the fleet proofs is `just multiworker`: it boots both fleets itself and asserts the kill-the-fleet elicitation resume, so you only need the demo targets for interactive testing.
 
 Seeding creates the small book library the book tools read, `mcp-test-user` (the user the bearer endpoints resolve the demo token to), and an `admin` superuser for the Django admin at `http://127.0.0.1:8000/admin/`.
 The bearer token `good-token` and the `admin`/`admin` credentials are published demo constants, not secrets — the same stance as the example's committed `SECRET_KEY`.
@@ -94,8 +94,8 @@ Two practical notes:
 | `/filtered-mcp/` | Tool visibility filtered by user permission |
 | `/admin-mcp/` | Requires scope `mcp:admin`, which the demo token lacks |
 
-The view serves **POST only**; any other method — including a bare GET expecting an SSE stream — gets an immediate `405`, because stateless MCP has no standing server-push channel ([ADR-0017](../docs/adr/0017-post-only-view.md)).
-`CsrfViewMiddleware` does not block the endpoints: the view is CSRF-exempt, because MCP clients authenticate with bearer headers rather than the ambient cookies CSRF forgery relies on ([ADR-0018](../docs/adr/0018-example-auth-middleware.md)).
+The view serves **POST only**; any other method — including a bare GET expecting an SSE stream — gets an immediate `405`, because stateless MCP has no standing server-push channel.
+`CsrfViewMiddleware` does not block the endpoints: the view is CSRF-exempt, because MCP clients authenticate with bearer headers rather than the ambient cookies CSRF forgery relies on.
 
 ### More Inspector fixtures
 
@@ -111,19 +111,20 @@ The permission cycle demonstrates both layers: *visibility filtering* (`Permitte
 The permission in play is the example's own custom one, `example.can_update_authors`, declared in `Author.Meta.permissions` the way Django's docs recommend — not a borrowed built-in.
 
 1. Add a second Inspector server the same way as in the quick start: **Add Servers** → **+ Add manually**, Server ID `filtered-mcp`, Transport **streamable-http**, URL `http://127.0.0.1:8000/filtered-mcp/`.
-2. On its card, open **Settings**; set **Protocol Era** to **Modern** in **Options**, then in **Custom Headers** click **+ Add Header** and set Key `Authorization`, Value `Bearer good-token`.
-3. Connect it (disconnect the first server first — its card's toggle, or the header's disconnect button; other cards are greyed out while a connection is up) and open **Tools**.
+2. Disconnect the first server (its card's toggle, or the header's disconnect button) — while any server is connected, every other card's buttons, **Settings** included, are greyed out.
+3. On the new card, open **Settings**; set **Protocol Era** to **Modern** in **Options**, then in **Custom Headers** click **+ Add Header** and set Key `Authorization`, Value `Bearer good-token`.
+4. Connect it and open **Tools**.
    By default you see only `public_ping` — `update_author` is hidden, because `mcp-test-user` lacks the permission.
-4. **Grant the permission in the Django admin**: open `http://127.0.0.1:8000/admin/` and log in as `admin` / `admin` (demo-only credentials).
+5. **Grant the permission in the Django admin**: open `http://127.0.0.1:8000/admin/` and log in as `admin` / `admin` (demo-only credentials).
    Go to **Users → mcp-test-user → User permissions**, pick **Example | author | Can update authors**, add it to chosen permissions, and **Save**.
-5. Back in Inspector, refresh the tool list — the Tools panel does not refetch on its own: toggle the connection off and on, then reopen **Tools**.
+6. Back in Inspector, refresh the tool list — the Tools panel does not refetch on its own: toggle the connection off and on, then reopen **Tools**.
    (Or replay the `tools/list` entry in the message log — the panel shows the new list after you click away from **Tools** and back.)
    `update_author` appears (each request re-evaluates the user's permissions — nothing is cached anywhere).
    Run it with **Author Id** `1` and **Name** `Renamed Author` → `"author 1 renamed to Renamed Author"`, then see the change in the admin's Authors list.
    (Run it *without* its arguments and you get a validation error, not a permission refusal — don't misread it in permission tests.)
-6. Remove the permission again in the admin, and — **without refreshing the list** — run `update_author` from the still-visible entry (close the **Results** panel first to get the argument form back).
+7. Remove the permission again in the admin, and — **without refreshing the list** — run `update_author` from the still-visible entry (close the **Results** panel first to get the argument form back).
    It is refused with a red **Tool Error**: *"You may not update authors."*
-   The client could still name the tool; hiding it from `tools/list` was never the protection. **Tools must gate their own execution** ([ADR-0014](../docs/adr/0014-user-and-tool-permissions.md)).
+   The client could still name the tool; hiding it from `tools/list` was never the protection. **Tools must gate their own execution.**
 
 Prefer a scriptable toggle (or start from a known state — the grant persists in `example/db.sqlite3` between runs)? The seed command flips the same permission:
 
@@ -241,7 +242,7 @@ curl -N -X POST http://127.0.0.1:8000/mcp/ \
 ```
 
 The first frame is the acknowledgement; then, from another terminal, call the `test_trigger_tool_change` tool (any client — Inspector works) and a `notifications/tools/list_changed` frame appears on the open stream.
-Under `just demo` (WSGI) the same request gets an explicit `501` — live streams need ASGI ([ADR-0020](../docs/adr/0020-subscription-streams.md)).
+Under `just demo` (WSGI) the same request gets an explicit `501` — live streams need ASGI.
 Note the in-memory bus is per-process: under the 4-worker demo, the trigger only reaches streams held by the worker that serves it — and the worker holding a stream wins *fewer* `accept()`s, so expect to fire the trigger tens of times (a real run took 31) before one lands.
 That lottery is the live demonstration of why a real fleet wires an external `SubscriptionBus`; for a deterministic demo, run a single worker (`uvicorn example.asgi:application --workers 1`).
 
@@ -251,6 +252,6 @@ That lottery is the live demonstration of why a real fleet wires an external `Su
 - `worker_pid` — which process answered.
 - `slow_book_report` — the 30-second block; raise Inspector's timeout first (see [the slow tool](#a-deliberately-slow-tool)).
 - `current_username`, `update_author` — resolved user and permission gating (on `/user-mcp/`); `update_author` takes `author_id` and `name` arguments.
-- `db_thread_info` — which worker thread served the call and whether it still holds a DB connection; call `count_books` then this to watch connection hygiene working ([ADR-0021](../docs/adr/0021-worker-thread-connection-hygiene.md)).
+- `db_thread_info` — which worker thread served the call and whether it still holds a DB connection; call `count_books` then this to watch connection hygiene working.
 - `public_ping` vs `update_author` on `/filtered-mcp/` — tool visibility filtered per user.
 - `test_input_required_result_*` — the SEP-2322 elicitation/sampling/roots fixtures the conformance suite also runs against.

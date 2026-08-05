@@ -2,31 +2,12 @@
 
 Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.
 
-You can contribute in many ways:
+## Bugs and feature ideas
 
-## Types of Contributions
+Report bugs and propose features at https://github.com/Streamlined-Analytics/django-stateless-mcp/issues.
+For bugs, include your Python and Django versions and detailed steps to reproduce; anything tagged "help wanted" is open to whoever wants to implement it.
 
-### Report Bugs
-
-Report bugs at https://github.com/Streamlined-Analytics/django-stateless-mcp/issues.
-
-If you are reporting a bug, please include:
-
-- Your operating system name and version.
-- Any details about your local setup that might be helpful in troubleshooting.
-- Detailed steps to reproduce the bug.
-
-### Fix Bugs
-
-Look through the GitHub issues for bugs. Anything tagged with "bug" and "help wanted" is open to whoever wants to implement it.
-
-### Implement Features
-
-Look through the GitHub issues for features. Anything tagged with "enhancement" and "help wanted" is open to whoever wants to implement it.
-
-### Write Documentation
-
-django-stateless-mcp could always use more documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such.
+## Documentation
 
 To preview the docs locally:
 
@@ -35,16 +16,6 @@ just docs-serve
 ```
 
 This starts a local server at http://localhost:8000 with live reload. Edit files in `docs/` or add docstrings to your code (the API reference page is auto-generated).
-
-### Submit Feedback
-
-The best way to send feedback is to file an issue at https://github.com/Streamlined-Analytics/django-stateless-mcp/issues.
-
-If you are proposing a feature:
-
-- Explain in detail how it would work.
-- Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
 
 ## Get Started!
 
@@ -99,8 +70,8 @@ Ready to contribute? Start with [ARCHITECTURE.md](ARCHITECTURE.md) — the map o
 Before you submit a pull request, check that it meets these guidelines:
 
 1. The pull request should include tests.
-2. If the pull request adds functionality, the docs should be updated. Put your new functionality into a function with a docstring, and add the feature to the list in README.md.
-3. The pull request should work for Python 3.12, 3.13, and 3.14. Tests run in GitHub Actions on every pull request to the main branch, make sure that the tests pass for all supported Python versions.
+2. If the pull request adds functionality, the docs should be updated. Put your new functionality into a function with a docstring, and add the feature to the "What it provides" list in README.md.
+3. The pull request should work on every supported Python and Django combination (see "Supported versions" in README.md). Tests run in GitHub Actions on every pull request to the main branch; make sure they pass for the whole matrix.
 
 ## Tips
 

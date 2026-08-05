@@ -10,8 +10,14 @@ docker compose up
 ```
 
 `docker compose up` migrates a local SQLite database, seeds a small book library plus demo users, and starts **four worker processes** behind one port with no sticky routing — no local uv, Python, or just required.
-The domain is a deliberately familiar one — books and authors, in the spirit of Django's own documentation: `list_books` reads seeded rows through the ORM, `update_author` gates on a custom `example.can_update_authors` permission you toggle live in the Django admin (`/admin/`, `admin`/`admin`) while MCP Inspector re-lists the tools, and `slow_book_report` blocks for 30 seconds to show a slow tool occupying one worker thread — never the event loop or the fleet.
-That fleet is the point: the `worker_pid` tool shows different processes answering successive calls, and an elicitation started on one worker resumes on another, because the encrypted `requestState` is keyed from `SECRET_KEY` rather than the SDK's per-process default.
+The domain is a deliberately familiar one — books and authors, in the spirit of Django's own documentation:
+
+- `list_books` reads seeded rows through the ORM.
+- `update_author` gates on a custom permission you toggle live in the Django admin (`/admin/`, `admin`/`admin`) while MCP Inspector re-lists the tools.
+- `slow_book_report` blocks for 30 seconds — a slow tool occupies one worker thread, never the event loop or the fleet.
+- `worker_pid` shows different processes answering successive calls.
+
+That fleet is the point: an elicitation started on one worker resumes on another, because the encrypted `requestState` is keyed from `SECRET_KEY` rather than the SDK's per-process default.
 You can stop the server mid-elicitation, start it again, and the resume still completes — no process ever held the flow.
 
 Have uv installed? `just demo-asgi` runs the same fleet on the host, `just demo-gunicorn` runs it under WSGI gunicorn, and `just demo` runs a single-process WSGI dev server — the view serves both deployment models.

@@ -12,8 +12,9 @@ agents without loosening the protections Django already gives your data and
 infrastructure — and that is what this package is for.
 
 django-stateless-mcp is a stateless MCP server for Django, built on the
-**2026-07-28** spec. An MCP endpoint becomes an ordinary Django view — no
-sessions, no SSE, no sticky routing, and no dedicated single-process service.
+[**2026-07-28** spec](https://modelcontextprotocol.io/specification/2026-07-28).
+An MCP endpoint becomes an ordinary Django view — no sessions, no SSE, no
+sticky routing, and no dedicated single-process service.
 
 * [GitHub](https://github.com/Streamlined-Analytics/django-stateless-mcp/) | [PyPI](https://pypi.org/project/django-stateless-mcp/) | [Documentation](https://django-stateless-mcp.readthedocs.io/)
 * Created by [Ben Atkinson](https://streamlinedanalytics.co.uk) | GitHub [@BenA-SA](https://github.com/BenA-SA)
@@ -21,46 +22,27 @@ sessions, no SSE, no sticky routing, and no dedicated single-process service.
 
 ## Why use this
 
-**Your MCP server is an ordinary Django view.** It deploys with the rest of
-your application — same process, same settings, same middleware, same
-monitoring — and tools call your models and business logic directly. There is
-no separate MCP service to build, secure, and operate.
-
-**It scales like the rest of your Django app — which MCP previously could
-not.** Before the 2026-07-28 spec, MCP needed a persistent connection: a tool
-that asked the user a question held an open stream and a blocked worker, and a
-reply that round-robined to another worker failed. The practical workaround was
-a dedicated single-process MCP service. The 2026-07-28 spec makes MCP plain
-request/response HTTP — Django's home turf — so any worker on any instance can
-serve any request. See
-[Why stateless](https://django-stateless-mcp.readthedocs.io/en/stable/why-stateless/)
-for the full story.
-
-**Tools can ask the user questions — elicitation.** A tool can pause mid-call
-to request input — fill in missing form fields, or require explicit approval
-before a create, update or delete — then resume when the answer comes back.
-`request_state_security()` keys the resume state from `SECRET_KEY`, so the
-answer can land on a different worker than the one that asked.
-
-**Kick off a long job, keep chatting, and the result comes back when it's
-ready.** A tool can start a background job (a Celery task, say) and return
-instantly with a job reference; when the job finishes, the server pushes a
-notification over a subscription stream and the client fetches the result — no
-polling, no worker blocked for the duration. See the
-[long-running jobs recipe](https://django-stateless-mcp.readthedocs.io/en/stable/recipes/long-running-jobs/).
-
-**Your authentication and permissions work inside tools.** Bearer-token auth
-resolves to a real Django user, so `request.user` is populated and
-`user.has_perm(...)` just works. `PermittedToolsFilter` additionally hides
-tools a user may not use from `tools/list` — while each tool still gates its
-own execution.
-
-**You can see what your MCP is doing.** Optional structlog middleware logs one
-queryable event per request: method, tool, duration, and whether the call
-completed or paused for input.
-
-**Tools register the Django way.** Each app gets an `mcp.py`, discovered
-automatically — exactly like `admin.py`.
+* **Your MCP server is an ordinary Django view** — same deployment, same
+  middleware, same monitoring, and tools call your models and business logic
+  directly. No separate MCP service to build, secure, and operate.
+* **It scales like the rest of your Django app** — any worker on any instance
+  can serve any request, including an elicitation answer. See
+  [Why stateless](https://django-stateless-mcp.readthedocs.io/en/stable/why-stateless/)
+  for what changed on 2026-07-28 to make that possible.
+* **Tools can ask the user questions** — pause mid-call for missing form
+  fields or an explicit approval, then resume on whichever worker the answer
+  lands on: `request_state_security()` keys the resume state from
+  `SECRET_KEY`.
+* **Kick off a long job, keep chatting, and the result comes back when it's
+  ready** — see the
+  [long-running jobs recipe](https://django-stateless-mcp.readthedocs.io/en/stable/recipes/long-running-jobs/).
+* **Your authentication and permissions work inside tools** — bearer auth
+  resolves to a real Django user, so `user.has_perm(...)` just works, and
+  `PermittedToolsFilter` hides tools a user may not use from `tools/list`.
+* **You can see what your MCP is doing** — optional structlog middleware logs
+  one queryable event per request.
+* **Tools register the Django way** — each app's `mcp.py` is discovered
+  automatically, exactly like `admin.py`.
 
 ## Usage
 
@@ -125,9 +107,10 @@ Each is exercised in CI, along with an advisory job tracking the SDK's git main.
 
 The repo ships a runnable example project. `docker compose up` starts it
 behind four worker processes (no local uv or Python needed; `just demo-asgi`
-is the host-run equivalent); the [example README](example/README.md) quick
-start walks through watching an elicitation started on one worker resume on
-another — the package's thesis, observable with curl or any MCP client.
+is the host-run equivalent); the
+[example README](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/example/README.md)
+quick start walks through watching an elicitation started on one worker resume
+on another — the package's thesis, observable with curl or any MCP client.
 
 ## Documentation
 
@@ -137,7 +120,10 @@ decisions behind the package, is at
 
 ## Development
 
-Contributors: [ARCHITECTURE.md](ARCHITECTURE.md) maps how the package works and the invariants every change must preserve.
+Contributors: [ARCHITECTURE.md](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/ARCHITECTURE.md)
+maps how the package works and the invariants every change must preserve;
+[CONTRIBUTING.md](https://github.com/Streamlined-Analytics/django-stateless-mcp/blob/main/CONTRIBUTING.md)
+covers the workflow.
 
 ```bash
 git clone git@github.com:Streamlined-Analytics/django-stateless-mcp.git

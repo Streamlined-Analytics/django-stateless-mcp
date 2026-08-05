@@ -3,7 +3,7 @@
 An [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server is how AI agents — Claude Code, ChatGPT, and the assistants built on them — connect to your application in a controlled way: they see and call only the tools you choose to expose, under the permissions you enforce.
 As your users lean on AI for more of their work, it pays to be ready to accommodate their agents without loosening the protections Django already gives your data and infrastructure — and that is what this package is for.
 
-django-stateless-mcp is a stateless MCP server for Django, built on the **2026-07-28** spec.
+django-stateless-mcp is a stateless MCP server for Django, built on the [**2026-07-28** spec](https://modelcontextprotocol.io/specification/2026-07-28).
 An MCP endpoint becomes an ordinary Django view: no sessions, no SSE, no sticky routing, and no dedicated single-process service.
 
 ## Why use this
@@ -36,7 +36,6 @@ possible. Most of the API follows from it.
 - [Usage](usage.md) — using it in a Django project
 - [Try it live](example.md) — the runnable example project
 - [API reference](reference.md) — generated from the source
-- [Decisions](https://github.com/Streamlined-Analytics/django-stateless-mcp/tree/main/docs/adr) — the reasoning behind the project's choices, kept in the repository
 
 ## What this package is not
 

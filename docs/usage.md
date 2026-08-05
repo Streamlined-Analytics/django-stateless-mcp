@@ -101,6 +101,40 @@ apps can contribute tools without the URLconf knowing about them.
 Apps without an `mcp.py` are skipped. An `mcp.py` that fails to import raises
 at startup rather than being silently ignored.
 
+## Annotating tools (optional, encouraged)
+
+Tool annotations tell clients what kind of operation a tool performs, so a well-behaved client can build better UX around your server — auto-approve reads, ask for confirmation before destructive calls, retry idempotent ones safely.
+They are optional, but cheap to add and worth adding:
+
+```python
+from mcp.types import ToolAnnotations
+
+
+@server.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False))
+def lookup_order(order_id: int) -> str:
+    """Return the status of an order."""
+    ...
+```
+
+The hints available on the `2026-07-28` spec, illustrated with the [example project's](example.md) Book/Author tools:
+
+- `read_only_hint` — the tool changes nothing.
+  `list_books` and `count_books` set it true; a client can call them freely without confirmation.
+- `destructive_hint` — the tool may overwrite or delete existing data, as opposed to additive-only changes.
+  `update_author` sets it true because it overwrites an author's name; a `create_book` tool would set it false.
+  Defaults to true for non-read-only tools — the spec assumes the worst about a write unless told otherwise.
+- `idempotent_hint` — repeating the call with the same arguments has no additional effect, so it is safe to retry.
+  `update_author` sets it true: renaming author 1 to the same name twice leaves the same state.
+  A `charge_customer` tool would leave it false.
+- `open_world_hint` — the tool interacts with external entities (web search, sending email) rather than a closed domain.
+  Every example tool sets it false: they touch only the project's own database.
+- `title` — a human-readable display name for the tool.
+
+This list belongs to the MCP spec and may grow in future revisions — the authoritative reference for the version this package implements is the [`ToolAnnotations` schema](https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations).
+
+Annotations are **hints, not enforcement**: the spec instructs clients to treat them as untrusted, and nothing verifies a tool marked read-only actually is.
+Keep authorization where it already lives — permissions checked inside the tool, per the [OAuth & permissions recipe](recipes/oauth-and-permissions.md).
+
 ## Reaching the Django request from a tool
 
 Declare the SDK's `Context` parameter and pass it to `django_request()`:

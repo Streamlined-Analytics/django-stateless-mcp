@@ -115,13 +115,13 @@ The permission in play is the example's own custom one, `example.can_update_auth
 3. Connect it (disconnect the first server first — its card's toggle, or the header's disconnect button; other cards are greyed out while a connection is up) and open **Tools**.
    By default you see only `public_ping` — `update_author` is hidden, because `mcp-test-user` lacks the permission.
 4. **Grant the permission in the Django admin**: open `http://127.0.0.1:8000/admin/` and log in as `admin` / `admin` (demo-only credentials).
-   Go to **Users → mcp-test-user → User permissions**, pick **example | author | Can update authors**, add it to chosen permissions, and **Save**.
+   Go to **Users → mcp-test-user → User permissions**, pick **Example | author | Can update authors**, add it to chosen permissions, and **Save**.
 5. Back in Inspector, refresh the tool list — the Tools panel does not refetch on its own: toggle the connection off and on, then reopen **Tools**.
    (Or replay the `tools/list` entry in the message log — the panel shows the new list after you click away from **Tools** and back.)
    `update_author` appears (each request re-evaluates the user's permissions — nothing is cached anywhere).
    Run it with **Author Id** `1` and **Name** `Renamed Author` → `"author 1 renamed to Renamed Author"`, then see the change in the admin's Authors list.
    (Run it *without* its arguments and you get a validation error, not a permission refusal — don't misread it in permission tests.)
-6. Remove the permission again in the admin, and — **without refreshing the list** — run `update_author` from the still-visible entry.
+6. Remove the permission again in the admin, and — **without refreshing the list** — run `update_author` from the still-visible entry (close the **Results** panel first to get the argument form back).
    It is refused with a red **Tool Error**: *"You may not update authors."*
    The client could still name the tool; hiding it from `tools/list` was never the protection. **Tools must gate their own execution** ([ADR-0014](../docs/adr/0014-user-and-tool-permissions.md)).
 

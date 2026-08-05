@@ -13,28 +13,37 @@ The quick start below shows the package's thesis live in about two minutes; ever
 
    (Have uv installed? `just demo-asgi` runs the same fleet on the host — see [server variants](#server-variants-and-options).)
 
-2. **Run MCP Inspector** and open the tokened URL it prints:
+2. **Run MCP Inspector** and open the `http://localhost:6274/?MCP_INSPECTOR_API_TOKEN=…` URL it prints (the UI is the `6274` URL — not the sandbox one):
 
    ```sh
    npx @modelcontextprotocol/inspector
    ```
 
+   (Working on a remote machine? Forward port 6274 — the UI and its proxy share it.)
    (Inspector, not Claude Code — Claude Code cannot drive elicitation yet; see [Connect Claude Code](#connect-claude-code-partial-as-of-july-2026).)
 
-3. **Connect**: Transport Type **Streamable HTTP**, URL `http://127.0.0.1:8000/mcp/`.
+3. **Add the server**: click **Add Servers** → **+ Add manually**.
+   In the *Add server* dialog, set **Server ID** to anything (`django-stateless-mcp`), open the **Transport** dropdown and pick **streamable-http**, and set the **URL** field that appears to `http://127.0.0.1:8000/mcp/`.
+   Click **Add** — the server appears as a card in the list, still disconnected.
 
 4. **Set Protocol Era to "Modern" — this is the step everyone misses.**
-   Open the server entry's settings (the edit control on the server entry); in the **Options** section, change **Protocol Era** from its default, *Legacy (2025-11-25 handshake)*, to **Modern**, which pins `2026-07-28`.
+   On the new card, click **Settings** (the rightmost button — not **Edit**, which only reopens the ID/URL form); in the **Options** section, change **Protocol Era** from its default, *Legacy (2025-11-25 handshake)*, to **Modern (2026-07-28, sessionless)**, then close the dialog.
    Don't use *Auto* — it can fall back to legacy.
-   A legacy-era connection is what makes elicitation tools fail with *"Handler returned an invalid result"*; a connected modern session shows a **Modern** era badge.
+   A legacy-era connection is what makes elicitation tools fail with *"Handler returned an invalid result"*.
 
-5. **Call a tool**: **Tools** tab → **List Tools** → run `list_books` → the seeded library, straight from the ORM: `The Definitive Guide to Django (Adrian Holovaty)` and friends.
+5. **Connect**: flip the toggle switch on the card.
+   The card reads **Connected** with an **MCP 2026-07-28** badge, and the message log on the right gains a **Modern** badge — its first entry is `server/discover`, with no `initialize` handshake anywhere.
+   (Inspector drives one connection at a time; while connected, every other server card is greyed out.)
 
-6. **Run the elicitation round-trip**: run `test_input_required_result_elicitation`.
-   Inspector pauses at a pending-request modal asking for a name; submit it, and Inspector automatically retries with the returned `requestState` → the tool completes with a greeting.
-   In the server log that is two independent requests — `exit=input_required`, then `exit=completed` — with no state held between them.
+6. **Call a tool**: open the **Tools** tab that appeared in the header.
+   The tool list loads by itself — there is no "List Tools" button.
+   Click `list_books` and click **Execute Tool** → **Results** shows the seeded library, straight from the ORM: `The Definitive Guide to Django (Adrian Holovaty)` and friends.
 
-7. **Toggle a permission in the Django admin** and watch the tool list change — the two-layer permission demo, spelled out in [Test permissions through the admin](#test-permissions-through-the-admin-and-inspector).
+7. **Run the elicitation round-trip**: select `test_input_required_result_elicitation` and click **Execute Tool**.
+   Inspector pauses at an **Elicitation Request** modal asking for a name; type one and **Submit**, and Inspector automatically retries with the returned `requestState` → **Results** shows the greeting.
+   The message log shows the two independent requests — the first marked **input required**, the retry **complete** — and the server log shows `exit=input_required`, then `exit=completed`, with no state held between them.
+
+8. **Toggle a permission in the Django admin** and watch the tool list change — the two-layer permission demo, spelled out in [Test permissions through the admin](#test-permissions-through-the-admin-and-inspector).
 
 That is the package's thesis, observed live.
 The harder proofs — the retry answered by a **different server instance**, the whole fleet **killed and restarted mid-flow**, tampered state rejected — are in [the curl walkthrough](#see-statelessness-with-your-own-eyes-curl).
@@ -101,15 +110,19 @@ That is connection affinity, not server state — the curl transcript below show
 The permission cycle demonstrates both layers: *visibility filtering* (`PermittedToolsFilter`) and *execution gating* (the tool's own check) — and why only the second is a security boundary.
 The permission in play is the example's own custom one, `example.can_update_authors`, declared in `Author.Meta.permissions` the way Django's docs recommend — not a borrowed built-in.
 
-1. Add a second Inspector server: URL `http://127.0.0.1:8000/filtered-mcp/`, Protocol Era **Modern**, and in the settings' auth section a bearer token of `good-token`.
-2. Connect → List Tools. By default you see only `public_ping` — `update_author` is hidden, because `mcp-test-user` lacks the permission.
-3. **Grant the permission in the Django admin**: open `http://127.0.0.1:8000/admin/` and log in as `admin` / `admin` (demo-only credentials).
+1. Add a second Inspector server the same way as in the quick start: **Add Servers** → **+ Add manually**, Server ID `filtered-mcp`, Transport **streamable-http**, URL `http://127.0.0.1:8000/filtered-mcp/`.
+2. On its card, open **Settings**; set **Protocol Era** to **Modern** in **Options**, then in **Custom Headers** click **+ Add Header** and set Key `Authorization`, Value `Bearer good-token`.
+3. Connect it (disconnect the first server first — its card's toggle, or the header's disconnect button; other cards are greyed out while a connection is up) and open **Tools**.
+   By default you see only `public_ping` — `update_author` is hidden, because `mcp-test-user` lacks the permission.
+4. **Grant the permission in the Django admin**: open `http://127.0.0.1:8000/admin/` and log in as `admin` / `admin` (demo-only credentials).
    Go to **Users → mcp-test-user → User permissions**, pick **example | author | Can update authors**, add it to chosen permissions, and **Save**.
-4. Back in Inspector, **List Tools** again — `update_author` appears (each request re-evaluates the user's permissions — nothing is cached anywhere).
-   Run it with `author_id: 1, name: "Renamed Author"` → `"author 1 renamed to Renamed Author"`, then see the change in the admin's Authors list.
+5. Back in Inspector, refresh the tool list — the Tools panel does not refetch on its own: toggle the connection off and on, then reopen **Tools**.
+   (Or replay the `tools/list` entry in the message log — the panel shows the new list after you click away from **Tools** and back.)
+   `update_author` appears (each request re-evaluates the user's permissions — nothing is cached anywhere).
+   Run it with **Author Id** `1` and **Name** `Renamed Author` → `"author 1 renamed to Renamed Author"`, then see the change in the admin's Authors list.
    (Run it *without* its arguments and you get a validation error, not a permission refusal — don't misread it in permission tests.)
-5. Remove the permission again in the admin, and — **without re-listing** — run `update_author` from the still-visible entry.
-   It is refused: *"You may not update authors."*
+6. Remove the permission again in the admin, and — **without refreshing the list** — run `update_author` from the still-visible entry.
+   It is refused with a red **Tool Error**: *"You may not update authors."*
    The client could still name the tool; hiding it from `tools/list` was never the protection. **Tools must gate their own execution** ([ADR-0014](../docs/adr/0014-user-and-tool-permissions.md)).
 
 Prefer a scriptable toggle (or start from a known state — the grant persists in `example/db.sqlite3` between runs)? The seed command flips the same permission:
@@ -128,9 +141,9 @@ And `/admin-mcp/` answers `403` to everything: the demo token lacks the `mcp:adm
 
 `slow_book_report` blocks for a full 30 seconds before returning the book list — long enough to *feel* what a slow tool does to a conversation, and to see what it does not do to the server.
 
-1. **First raise Inspector's request timeout**, or the call will abort at the default 10 s: in Inspector's **Configuration** pane, set **Request Timeout** to `60000`.
-2. Run `slow_book_report` and let it hang.
-3. While it hangs, run `worker_pid` or `list_books` from another server entry (or curl) — they answer immediately.
+1. Run `slow_book_report` and let it hang — Inspector v2's default **Request Timeout** is `0` (no timeout), so the call simply sits until the tool returns at ~30 s.
+   (If you have set a timeout, raise or clear it on the server card's **Settings** → **Timeouts** → **Request Timeout**, in milliseconds.)
+2. While it hangs, call `worker_pid` or `list_books` with curl from a terminal (Inspector drives one connection and one call at a time) — they answer immediately.
    The sleeping tool occupies one worker *thread*, not the event loop and not the fleet.
 
 Under the WSGI fleet (`just demo-gunicorn`) the contrast is sharper: a slow call pins an entire worker *process* — with four workers, four concurrent slow calls stall everything.

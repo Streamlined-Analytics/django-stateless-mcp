@@ -24,30 +24,58 @@ def test_seed_creates_demo_user_without_perm():
     call_command("seed")
 
     user = User.objects.get(username="mcp-test-user")
-    assert not user.has_perm("auth.delete_user")
+    assert not user.has_perm("example.can_update_authors")
 
 
 @pytest.mark.django_db
-def test_seed_toggles_delete_permission():
-    """--grant-delete and --revoke-delete flip the locked tool's permission."""
+def test_seed_creates_the_demo_superuser():
+    """Seeding creates the admin account the permission walkthrough logs into."""
     from django.contrib.auth.models import User
 
-    call_command("seed", "--grant-delete")
-    assert User.objects.get(username="mcp-test-user").has_perm("auth.delete_user")
+    call_command("seed")
 
-    call_command("seed", "--revoke-delete")
-    assert not User.objects.get(username="mcp-test-user").has_perm("auth.delete_user")
+    superuser = User.objects.get(username="admin")
+    assert superuser.is_staff
+    assert superuser.is_superuser
+    assert superuser.check_password("admin")
+
+
+@pytest.mark.django_db
+def test_seed_creates_the_library():
+    """Seeding creates the books the book tools read."""
+    from example.models import Author, Book
+
+    call_command("seed")
+
+    assert Author.objects.exists()
+    assert Book.objects.select_related("author").exists()
+
+
+@pytest.mark.django_db
+def test_seed_toggles_update_authors_permission():
+    """--grant-update-authors and --revoke-update-authors flip the locked tool's permission."""
+    from django.contrib.auth.models import User
+
+    call_command("seed", "--grant-update-authors")
+    assert User.objects.get(username="mcp-test-user").has_perm("example.can_update_authors")
+
+    call_command("seed", "--revoke-update-authors")
+    assert not User.objects.get(username="mcp-test-user").has_perm("example.can_update_authors")
 
 
 @pytest.mark.django_db
 def test_seed_is_idempotent():
-    """Reseeding never duplicates the demo user."""
+    """Reseeding never duplicates users, authors, or books."""
     from django.contrib.auth.models import User
 
+    from example.models import Author, Book
+
     call_command("seed")
+    users, authors, books = User.objects.count(), Author.objects.count(), Book.objects.count()
     call_command("seed")
 
     assert User.objects.filter(username="mcp-test-user").count() == 1
+    assert (User.objects.count(), Author.objects.count(), Book.objects.count()) == (users, authors, books)
 
 
 @pytest.mark.django_db

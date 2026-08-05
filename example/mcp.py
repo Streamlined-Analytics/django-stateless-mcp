@@ -1,6 +1,6 @@
 """Autodiscovered tool registrations for the ``example`` app.
 
-Nothing imports this module explicitly: it registers ``multiply`` only if
+Nothing imports this module explicitly: it registers ``book_slug`` only if
 ``django_stateless_mcp``'s autodiscovery imported it, which is what the
 autodiscovery tests assert.
 """
@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from django.utils.text import slugify
 from mcp.server.mcpserver import Context
 from mcp.server.mcpserver.prompts.base import UserMessage
 from mcp.shared.exceptions import MCPError
@@ -33,9 +34,14 @@ from example.mcp_server import server, server_b
 
 
 @server.tool()
-def multiply(a: int, b: int) -> int:
-    """Multiply two integers."""
-    return a * b
+def book_slug(title: str) -> str:
+    """Slugify a book title, the way a bookstore URL would.
+
+    Deliberately ORM-free: the conformance and multi-worker harnesses boot
+    this app without running migrations, so autodiscovered tools outside the
+    ``test_*`` fixtures must not need the database either.
+    """
+    return slugify(title)
 
 
 # SEP-2322 conformance fixtures, ported from the mcp-everything-server in

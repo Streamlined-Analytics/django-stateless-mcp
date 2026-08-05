@@ -10,6 +10,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import django_stubs_ext
+
+# Lets the example's admin classes be parameterized (ModelAdmin[Author]) at runtime.
+django_stubs_ext.monkeypatch()
+
 BASE_DIR = Path(__file__).resolve().parent
 
 # Deliberately published: the demo depends on every worker sharing this key,
@@ -32,14 +37,35 @@ DATABASES = {
 ROOT_URLCONF = "example.urls"
 
 INSTALLED_APPS = [
+    # Admin (and the staticfiles/TEMPLATES it needs) exists so the reader can
+    # toggle the demo user's permission through a GUI. See ADR-0033.
+    "django.contrib.admin",
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.staticfiles",
     "django_stateless_mcp",
     # An installed app with an mcp.py, so autodiscovery has something to find.
     "example",
 ]
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+STATIC_URL = "static/"
 
 # The full stack real consumer projects carry (ADR-0018), bracketed first-and-last
 # by prometheus-shaped response middleware the way the consumers run it. See ADR-0032.

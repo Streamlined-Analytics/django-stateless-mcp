@@ -92,7 +92,7 @@ class Fleet:
         deadline = time.monotonic() + STARTUP_DEADLINE_SECONDS
         while time.monotonic() < deadline:
             try:
-                self.call_tool("add", {"a": 1, "b": 1})
+                self.call_tool("worker_pid", {})
             except (urllib.error.URLError, ConnectionError, TimeoutError):
                 time.sleep(0.25)
                 continue

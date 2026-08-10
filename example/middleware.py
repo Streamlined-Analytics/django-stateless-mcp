@@ -9,8 +9,19 @@ without the dependency, so the suite proves a response-processing
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import django
 from django.http import HttpRequest, HttpResponseBase
-from django.utils.deprecation import MiddlewareMixin
+
+if TYPE_CHECKING:
+    # django-stubs has yet to carry the 6.2 location. See ADR-0038.
+    from django.utils.deprecation import MiddlewareMixin
+elif django.VERSION >= (6, 2):
+    # Moved in 6.2; the old path warns. Drop this branch at the 6.2 floor. See ADR-0038.
+    from django.middleware import MiddlewareMixin
+else:
+    from django.utils.deprecation import MiddlewareMixin
 
 
 class BracketBeforeMiddleware(MiddlewareMixin):

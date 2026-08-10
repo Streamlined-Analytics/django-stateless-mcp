@@ -48,3 +48,5 @@ until then).
 | [ADR-0035](0035-concise-docs-link-out-no-adr-references.md) | User-facing docs stay concise, link out, and never cite ADRs |
 | [ADR-0036](0036-elicitation-recipe.md) | A worked elicitation recipe — forms and destructive-action confirmations |
 | [ADR-0037](0037-production-oauth-default-posture.md) | Docs recommend OAuth (DOT + DCR) as the production default posture |
+| [ADR-0038](0038-django-main-middlewaremixin-move.md) | The example's middleware imports `MiddlewareMixin` version-conditionally |
+| [ADR-0039](0039-non-atomic-requests-returns-a-wrapper.md) | `mcp_view()` keeps the view `non_atomic_requests()` returns, and re-marks it async |

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 import anyio.to_thread
+from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 from django.core.handlers.asgi import ASGIRequest
 from django.db import close_old_connections, connections, transaction
 from django.http import HttpResponse, HttpResponseBase, HttpResponseNotAllowed, StreamingHttpResponse
@@ -380,5 +381,8 @@ def mcp_view(
     exempt_view = csrf_exempt(view)
     # An async view on an ATOMIC_REQUESTS alias never runs -- Django raises before dispatch. See ADR-0031.
     for alias in connections:
-        transaction.non_atomic_requests(using=alias)(exempt_view)
+        exempt_view = transaction.non_atomic_requests(using=alias)(exempt_view)
+    # Django 6.2's wrapper is a plain def, which would demote the view to sync. See ADR-0039.
+    if not iscoroutinefunction(exempt_view):
+        markcoroutinefunction(exempt_view)
     return exempt_view

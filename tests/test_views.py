@@ -690,6 +690,21 @@ def test_user_resolver_without_verifier_is_rejected():
         mcp_view(server, user_resolver=resolve_stub_user)
 
 
+def test_view_stays_a_coroutine_function():
+    """The ATOMIC_REQUESTS exemption must not demote the view to a sync one.
+
+    Django 6.2 made ``non_atomic_requests()`` return a new wrapper -- a plain
+    ``def`` -- instead of mutating the view in place, so an unmarked result
+    would have Django run this async view through the sync path. See ADR-0039.
+    """
+    from asgiref.sync import iscoroutinefunction
+
+    from django_stateless_mcp import mcp_view
+    from example.mcp_server import server
+
+    assert iscoroutinefunction(mcp_view(server))
+
+
 def test_required_scopes_without_verifier_is_rejected():
     """Scopes without a verifier are equally meaningless and rejected."""
     from django_stateless_mcp import mcp_view

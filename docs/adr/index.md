@@ -50,3 +50,4 @@ until then).
 | [ADR-0037](0037-production-oauth-default-posture.md) | Docs recommend OAuth (DOT + DCR) as the production default posture |
 | [ADR-0038](0038-django-main-middlewaremixin-move.md) | The example's middleware imports `MiddlewareMixin` version-conditionally |
 | [ADR-0039](0039-non-atomic-requests-returns-a-wrapper.md) | `mcp_view()` keeps the view `non_atomic_requests()` returns, and re-marks it async |
+| [ADR-0040](0040-client-claims-verified-against-the-client.md) | Client-support claims are verified by running the client, not by reading its changelog |

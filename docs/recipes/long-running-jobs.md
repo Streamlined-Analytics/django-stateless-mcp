@@ -99,5 +99,6 @@ Two real requirements:
 ## Client support
 
 The final hop — the result popping back into the user's conversation — belongs to the MCP **client**: it must hold the stream, react to the event, and surface the fetched result.
-As of July 2026, MCP Inspector consumes subscription events; Claude Code does not yet.
-The server side shown here is complete either way — when a client catches up with the spec, the same endpoint starts delivering with no server change.
+MCP Inspector consumes subscription events, and Claude Code holds the `subscriptions/listen` stream as of v2.1.233.
+One deployment note follows from that client's own bug history: a client will reopen the stream when the server closes it, so an idle-connection timeout at your proxy turns into a reconnect loop rather than a clean end.
+Give the endpoint's route a generous read timeout.

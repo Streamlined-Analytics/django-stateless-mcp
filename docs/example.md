@@ -30,8 +30,9 @@ What the demo serves is exactly what the tests assert on.
 **MCP Inspector is the reference client for testing this package** (`npx @modelcontextprotocol/inspector`): its v2 line implements the full `2026-07-28` era, including the elicitation round-trip, rendered as a form.
 One setting matters: set the connection's **Protocol Era to "Modern"** — Inspector defaults to the legacy 2025 handshake, under which elicitation fails.
 
-As of this writing (July 2026), Claude Code speaks the stateless transport — a session opened in the repository picks up the committed `.mcp.json`, connects, and calls plain tools — but does not yet send the SEP-2322 capabilities envelope, so elicitation flows fail client-side.
-That is a client gap, not a server one; the same tools will work unchanged once the client catches up.
+Claude Code drives this example too: a session opened in the repository picks up the committed `.mcp.json`, connects, calls tools, and completes the elicitation round-trip — it declares the `elicitation` capability in its SEP-2322 envelope, and the demo's flow log shows the two requests as `exit=input_required` then `exit=completed`.
+It declares no `sampling` capability, so `test_missing_capability` still refuses — which is that fixture doing its job.
+(Verified against Claude Code 2.1.250, 28 August 2026.)
 
 Any other streamable-HTTP MCP client can register `http://127.0.0.1:8000/mcp/`; the bearer endpoints take `Authorization: Bearer good-token` (a published demo constant).
 

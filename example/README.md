@@ -20,7 +20,7 @@ The quick start below shows the package's thesis live in about two minutes; ever
    ```
 
    (Working on a remote machine? Forward port 6274 — the UI and its proxy share it.)
-   (Inspector, not Claude Code — Claude Code cannot drive elicitation yet; see [Connect Claude Code](#connect-claude-code-partial-as-of-july-2026).)
+   (Claude Code drives this too — see [Connect Claude Code](#connect-claude-code); Inspector is the reference client because it renders each elicitation as a form you fill in yourself.)
 
 3. **Add the server**: click **Add Servers** → **+ Add manually**.
    In the *Add server* dialog, set **Server ID** to anything (`django-stateless-mcp`), open the **Transport** dropdown and pick **streamable-http**, and set the **URL** field that appears to `http://127.0.0.1:8000/mcp/`.
@@ -203,16 +203,18 @@ Three harder variants, all verified against this project:
 - **Kill the fleet:** stop the server entirely between the two requests, start it again, then resume. It completes on processes that did not exist when the flow began — no process ever held the flow.
 - **Tamper with the state:** change one character of the `requestState` and send it. Expect a clean `400` with `"Invalid or expired requestState"` — the `SECRET_KEY`-keyed crypto refusing, not a stack trace.
 
-### Connect Claude Code (partial, as of July 2026)
+### Connect Claude Code
 
-As of this writing (July 2026), **Claude Code does not yet speak the `2026-07-28` protocol fully**, which is why the quick start uses [MCP Inspector](https://github.com/modelcontextprotocol/inspector) — its v2 line implements the full modern era, including the elicitation round-trip.
+The quick start uses [MCP Inspector](https://github.com/modelcontextprotocol/inspector) because it renders each elicitation as a form you fill in by hand, which is what makes the round-trip legible.
+Claude Code speaks the same `2026-07-28` wire, and answers elicitations through its own dialog.
 
 The repo ships a `.mcp.json`, so a Claude Code session opened in this repository automatically connects to `http://127.0.0.1:8000/mcp/` when the demo is running — the package dogfoods itself.
 The server must be up **before** the session starts (or use `/mcp` → reconnect).
 
-What works today: connection, `tools/list`, and plain tool calls.
-What doesn't: any `test_input_required_result_*` tool fails with `MCP error -32603` — Claude Code sends no SEP-2322 capabilities envelope yet, so the server (correctly, per spec) refuses to return an `input_required` result.
-That is a client gap, not a server one; when Claude's client speaks `2026-07-28` elicitation, the same tools will start working with no server change.
+Connection, `tools/list`, plain tool calls and the elicitation round-trip all work: Claude Code declares `elicitation` in its SEP-2322 capabilities envelope, so `test_input_required_result_elicitation` returns `input_required`, the client asks, and the retry carries the answer back with the `requestState`.
+The server log shows the pair — `exit=input_required`, then `exit=completed`.
+Two client-shaped edges remain: Claude Code declares no `sampling` capability, so `test_missing_capability` refuses (that fixture's whole point), and `test_input_required_result_capabilities` — a conformance fixture that returns `input_required` on every round by design — trips the client's ten-round guard.
+(Verified against Claude Code 2.1.250, 28 August 2026.)
 
 ### Watch the logs while you test
 

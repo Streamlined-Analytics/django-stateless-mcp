@@ -12,22 +12,23 @@ Both patterns need [`request_state_security()`](../usage.md#elicitation-that-sur
 
 Elicitation is the most unevenly adopted part of the spec, so check your users' client before you design a flow around it.
 Support is per *product*, not per vendor — Claude Code has it and Claude.ai does not.
+No consumer web portal has it at all: Claude.ai, ChatGPT and the Gemini app each route in-conversation UI through their own app or widget model instead, which makes elicitation a coding-agent and IDE feature today.
 
 | Client | Elicitation | Notes |
 | --- | --- | --- |
-| Claude Code (CLI) | ✅ | Since [v2.1.76](https://claude-world.com/articles/claude-code-2176-release/) (14 Mar 2026). [`Elicitation` and `ElicitationResult` hooks](https://code.claude.com/docs/en/hooks) let users auto-answer. |
+| Claude Code (CLI) | ✅ | Form and URL modes since [v2.1.76](https://claude-world.com/articles/claude-code-2176-release/) (14 Mar 2026). [`Elicitation` and `ElicitationResult` hooks](https://code.claude.com/docs/en/hooks) let users auto-answer. |
 | Claude.ai (web) | ❌ | Tracked in [anthropics/claude-ai-mcp#153](https://github.com/anthropics/claude-ai-mcp/issues/153), open. |
-| Claude Desktop | ❌ | Tracked in [anthropics/claude-code#41110](https://github.com/anthropics/claude-code/issues/41110), open. |
+| Claude Desktop | ❌ | No support and no live tracker — [anthropics/claude-code#41110](https://github.com/anthropics/claude-code/issues/41110) was filed against the CLI repository and closed as invalid. |
 | Codex CLI | ✅ | Server-driven elicitation merged in [openai/codex#17043](https://github.com/openai/codex/pull/17043) (8 Apr 2026). |
 | ChatGPT (web, developer mode) | ❌ | No documented support; interactive UI goes through the Apps SDK widget model instead. |
-| Gemini CLI | ❌ | Answers `Method not found`. Tracked in [#22249](https://github.com/google-gemini/gemini-cli/issues/22249) and, for URL mode, [#15613](https://github.com/google-gemini/gemini-cli/issues/15613). |
+| Gemini CLI | ❌ | Advertises `roots` only, so the request answers `Method not found`. Both trackers — [#22249](https://github.com/google-gemini/gemini-cli/issues/22249) and, for URL mode, [#15613](https://github.com/google-gemini/gemini-cli/issues/15613) — were closed in May 2026 as "no immediate plans". |
 | Gemini (consumer app) | ❌ | No self-serve third-party MCP servers at all — Spark connectors are partnership-only. |
 | GitHub Copilot (VS Code) | ✅ | Form and URL modes; server-supplied defaults since [v1.105](https://code.visualstudio.com/updates/v1_105). |
 | GitHub Copilot (Visual Studio) | ✅ | Answered in the chat window. VS 2026, backported to [VS 2022 17.14+](https://learn.microsoft.com/en-us/visualstudio/releases/2022/release-notes). |
 | Cursor | ✅ | Since [v1.5](https://cursor.com/changelog/1-5) (Aug 2025), form mode only; string, number, boolean and enum schemas. |
 | MCP Inspector | ✅ | Renders each elicitation as a real form — the quickest way to try yours. |
 
-Checked 10 August 2026; treat it as a snapshot and confirm against your client's own release notes.
+Checked 28 August 2026; treat it as a snapshot and confirm against your client's own release notes.
 
 A client without elicitation does not degrade on your behalf, and the two patterns below want opposite things from that.
 

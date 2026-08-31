@@ -49,10 +49,12 @@ pdb *ARGS:
     uv run --python=3.14 pytest --pdb --maxfail=10 {{ARGS}}
 
 # Run tests with coverage across all supported Python versions
+# The fleet run is not optional: it is the only cover for test_multiworker.py.
 coverage:
     uv run --python=3.12 coverage run -m pytest
     uv run --python=3.13 coverage run -m pytest
     uv run --python=3.14 coverage run -m pytest
+    MULTIWORKER=1 uv run --python=3.14 coverage run -m pytest tests/test_multiworker.py
     uv run --python=3.14 coverage combine
     uv run --python=3.14 coverage report
     uv run --python=3.14 coverage html

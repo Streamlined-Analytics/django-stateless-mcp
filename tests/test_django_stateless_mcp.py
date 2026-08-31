@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import textwrap
@@ -18,9 +19,14 @@ def _run_without_structlog(code: str) -> None:
 
     A `None` entry in `sys.modules` makes `import structlog` raise
     ImportError, simulating a bare install without the [structlog] extra.
+
+    ``process_startup()`` is a no-op unless COVERAGE_PROCESS_START is set, so
+    the subprocess is measured when the suite runs under coverage and runs
+    unchanged when it does not.
     """
-    blocker = 'import sys\nsys.modules["structlog"] = None\n'
-    subprocess.run([sys.executable, "-c", blocker + textwrap.dedent(code)], check=True)
+    prelude = 'import coverage\ncoverage.process_startup()\nimport sys\nsys.modules["structlog"] = None\n'
+    environment = {**os.environ, "COVERAGE_PROCESS_START": "pyproject.toml"}
+    subprocess.run([sys.executable, "-c", prelude + textwrap.dedent(code)], check=True, env=environment)
 
 
 def test_import():

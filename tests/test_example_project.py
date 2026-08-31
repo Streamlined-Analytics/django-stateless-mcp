@@ -110,3 +110,55 @@ def test_worker_pid_reports_the_serving_process(client):
 
     result = json.loads(response.content)["result"]
     assert result["structuredContent"] == {"result": os.getpid()}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_db_thread_info_reports_a_recycled_connection(client):
+    """The demo's hygiene tool shows the worker thread holding no connection.
+
+    Its whole point is making ADR-0021's claim visible in Inspector: the
+    bridge closes the thread's connection after each request, so even a
+    thread that just served an ORM tool reports ``connection_open=False``.
+    """
+    from example.models import Author, Book
+
+    Book.objects.create(title="Two Scoops", author=Author.objects.create(name="Audrey"))
+    client.post(
+        MCP_URL,
+        data=request_body("tools/call", {"name": "count_books", "arguments": {}}),
+        content_type="application/json",
+        headers=MCP_HEADERS,
+    )
+
+    response = client.post(
+        MCP_URL,
+        data=request_body("tools/call", {"name": "db_thread_info", "arguments": {}}),
+        content_type="application/json",
+        headers=MCP_HEADERS,
+    )
+
+    reported = json.loads(response.content)["result"]["structuredContent"]["result"]
+    assert reported.endswith("connection_open=False")
+
+
+def test_trigger_prompt_change_publishes_onto_the_bus(client):
+    """The demo tool publishing prompt-list changes runs without a listener."""
+    response = client.post(
+        MCP_URL,
+        data=request_body("tools/call", {"name": "test_trigger_prompt_change", "arguments": {}}),
+        content_type="application/json",
+        headers=MCP_HEADERS,
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": "prompts list change published"}
+
+
+def test_models_name_themselves_for_the_admin():
+    """Author and Book render as their name and title in the demo admin."""
+    from example.models import Author, Book
+
+    author = Author(name="Audrey Roy Greenfeld")
+
+    assert str(author) == "Audrey Roy Greenfeld"
+    assert str(Book(title="Two Scoops of Django", author=author)) == "Two Scoops of Django"

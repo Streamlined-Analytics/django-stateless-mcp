@@ -17,8 +17,7 @@ from django.http import HttpRequest, HttpResponseBase
 if TYPE_CHECKING:
     # django-stubs has yet to carry the 6.2 location. See ADR-0038.
     from django.utils.deprecation import MiddlewareMixin
-elif django.VERSION >= (6, 2):
-    # Moved in 6.2; the old path warns. Drop this branch at the 6.2 floor. See ADR-0038.
+elif django.VERSION >= (6, 2):  # pragma: no cover -- 6.2 is past the supported matrix. See ADR-0038.
     from django.middleware import MiddlewareMixin
 else:
     from django.utils.deprecation import MiddlewareMixin

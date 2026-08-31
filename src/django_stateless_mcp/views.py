@@ -266,10 +266,13 @@ class _StatelessBridge:
         try:
             start = await message_receive.receive()
         except anyio.EndOfStream:
+            # Nobody will read the stream now; only the success path hands it to the response.
+            message_receive.close()
             await dispatch_task
             raise RuntimeError("The MCP handler returned no HTTP response.") from None
         except BaseException:
             # Cancelled while waiting (client already gone): take the dispatch down or it outlives the request.
+            message_receive.close()
             dispatch_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await dispatch_task

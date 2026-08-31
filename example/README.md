@@ -92,6 +92,7 @@ Two practical notes:
 | `/user-mcp/` | Bearer auth + Django user resolution |
 | `/nouser-mcp/` | Bearer auth, resolver that finds no user |
 | `/filtered-mcp/` | Tool visibility filtered by user permission |
+| `/filtered-open-mcp/` | The same filtering with no auth at all — every tool is judged against an anonymous user |
 | `/admin-mcp/` | Requires scope `mcp:admin`, which the demo token lacks |
 
 The view serves **POST only**; any other method — including a bare GET expecting an SSE stream — gets an immediate `405`, because stateless MCP has no standing server-push channel.

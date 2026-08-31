@@ -81,6 +81,17 @@ To run a subset of tests:
 uv run pytest tests/
 ```
 
+Coverage is gated at 100%, so a new line needs a test or a `# pragma: no cover`
+carrying its reason. Measure it with:
+
+```sh
+just coverage
+```
+
+That runs the suite on every supported interpreter *and* the multi-worker fleet
+tests, which are skipped by a plain `pytest` run and are the only cover for
+`tests/test_multiworker.py`.
+
 ## Releasing a New Version
 
 1. **Bump the version** and **write the changelog:**

@@ -97,16 +97,19 @@ class Fleet:
                 time.sleep(0.25)
                 continue
             return
-        raise RuntimeError(f"Fleet did not serve within {STARTUP_DEADLINE_SECONDS}s: {self._command}")
+        # Only reached when the fleet never boots, which is the test failing.
+        raise RuntimeError(  # pragma: no cover
+            f"Fleet did not serve within {STARTUP_DEADLINE_SECONDS}s: {self._command}"
+        )
 
     def stop(self) -> None:
         """Kill the whole process group and wait for the port to free up."""
         if self._process is None:
-            return
+            return  # pragma: no cover -- guards a double stop, which no test does
         os.killpg(self._process.pid, signal.SIGTERM)
         try:
             self._process.wait(timeout=SHUTDOWN_DEADLINE_SECONDS)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired:  # pragma: no cover -- a fleet ignoring SIGTERM
             os.killpg(self._process.pid, signal.SIGKILL)
             self._process.wait(timeout=SHUTDOWN_DEADLINE_SECONDS)
         self._process = None
@@ -135,7 +138,7 @@ class Fleet:
     def worker_pids(self, *, want_distinct: int) -> set[int]:
         """Collect serving pids over fresh connections until enough are seen."""
         pids: set[int] = set()
-        for _ in range(DISTINCT_PID_ATTEMPTS):
+        for _ in range(DISTINCT_PID_ATTEMPTS):  # pragma: no branch -- exhausting it is the test failing
             result = self.call_tool("worker_pid", {})
             pids.add(int(result["structuredContent"]["result"]))
             if len(pids) >= want_distinct:

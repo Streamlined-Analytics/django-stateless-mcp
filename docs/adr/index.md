@@ -51,3 +51,5 @@ until then).
 | [ADR-0038](0038-django-main-middlewaremixin-move.md) | The example's middleware imports `MiddlewareMixin` version-conditionally |
 | [ADR-0039](0039-non-atomic-requests-returns-a-wrapper.md) | `mcp_view()` keeps the view `non_atomic_requests()` returns, and re-marks it async |
 | [ADR-0040](0040-client-claims-verified-against-the-client.md) | Client-support claims are verified by running the client, not by reading its changelog |
+| [ADR-0041](0041-sep-2322-fixtures-tested-by-pytest.md) | The SEP-2322 fixture tools are tested by pytest, not only by the conformance harness |
+| [ADR-0042](0042-hundred-percent-coverage-gate.md) | Coverage is gated at 100%, and every exclusion is named |

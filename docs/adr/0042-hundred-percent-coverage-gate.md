@@ -88,14 +88,23 @@ never executed. And `PermittedToolsFilter` on a request with no `user` at all �
 no `AuthenticationMiddleware`, no `user_resolver` — is the shape its docstring
 promises fails closed; it needed the new `filtered-open-mcp/` mount to reach.
 
-Writing those tests turned up one real defect. `PermittedToolsFilter` read the
-tool list as `result["tools"]` for a dict but `getattr(result, "tools", None)`
-for a model, so a `tools/list` result without the key raised `KeyError` where
-the model branch already tolerated it being absent. The `getattr` default says
-plainly that absence is meant to pass through; the dict branch now uses `.get()`
-and does the same. Not live — the SDK always sets the key — but it is public
-middleware, and the asymmetry was only visible because a test had to construct
-the shape that reaches the guard.
+Writing those tests turned up two real defects, both in code that had no test
+precisely because it is only reached when something goes wrong.
+
+`PermittedToolsFilter` read the tool list as `result["tools"]` for a dict but
+`getattr(result, "tools", None)` for a model, so a `tools/list` result without
+the key raised `KeyError` where the model branch already tolerated it being
+absent. The `getattr` default says plainly that absence is meant to pass
+through; the dict branch now uses `.get()` and does the same. Not live — the SDK
+always sets the key — but it is public middleware.
+
+`_handle_listen()` leaked its memory object stream on both error exits: only the
+success path hands `message_receive` to `_streamed_response`, so the
+`EndOfStream` and cancellation paths dropped it unclosed, and anyio's
+`ResourceWarning` fired from `__del__`. The cancellation path is the client
+disconnecting mid-stream, which is not rare under load. Both exits now close it.
+This one is the argument for the gate in miniature: the leak had existed since
+ADR-0020, and it became visible the moment a test executed the path.
 
 The SEP-2322 fixtures are ADR-0041.
 
@@ -129,4 +138,9 @@ missing input.
   tests are skipped without `MULTIWORKER=1`. Use `just coverage`, which runs
   both.
 - `PermittedToolsFilter` grew strictly more forgiving, so no deprecation path is
-  needed; worth a CHANGELOG line at the next release all the same.
+  needed; worth a CHANGELOG line at the next release, alongside the
+  `subscriptions/listen` stream leak.
+- Assertions on SDK-owned strings are a trap: a test pinning a tool exception's
+  text passed on `mcp==2.0.x` and failed on git main, which now wraps it in
+  `UnexpectedToolError` and redacts the message. Assert on `isError`, not on
+  wording the SDK is free to change.

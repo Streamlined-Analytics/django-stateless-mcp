@@ -840,21 +840,34 @@ def test_public_tool_runs_on_the_filtered_server(client):
 
 @pytest.mark.django_db(transaction=True)
 def test_renaming_an_unknown_author_is_an_error(client):
-    """A permitted user naming a row that does not exist gets a tool error."""
+    """A permitted user naming a row that does not exist gets a tool error.
+
+    Only ``isError`` is asserted: how much of a tool's exception reaches the
+    client is the SDK's decision, and it has changed -- git main wraps the
+    ValueError in ``UnexpectedToolError`` and redacts the message.
+    """
     from django.contrib.auth.models import Permission, User
+
+    from example.models import Author
 
     user = User.objects.create_user("mcp-test-user")
     user.user_permissions.add(Permission.objects.get(codename="can_update_authors"))
-    response = client.post(
-        USER_URL,
-        data=request_body("tools/call", {"name": "update_author", "arguments": {"author_id": 9999, "name": "X"}}),
-        content_type="application/json",
-        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
-    )
+    author = Author.objects.create(name="Sally Author")
 
-    result = json.loads(response.content)["result"]
-    assert result["isError"] is True
-    assert "no author with id 9999" in result["content"][0]["text"]
+    def rename(author_id: int) -> Any:
+        return json.loads(
+            client.post(
+                USER_URL,
+                data=request_body(
+                    "tools/call", {"name": "update_author", "arguments": {"author_id": author_id, "name": "X"}}
+                ),
+                content_type="application/json",
+                headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+            ).content
+        )["result"]
+
+    assert rename(9999)["isError"] is True
+    assert rename(author.pk)["isError"] is False
 
 
 def test_filter_treats_a_request_without_a_user_as_anonymous(client):

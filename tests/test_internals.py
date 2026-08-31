@@ -108,20 +108,21 @@ async def test_streamed_response_relays_bodies_and_drops_content_length():
     keepalive messages carrying no body would show up as empty SSE frames.
     """
     send, receive = anyio.create_memory_object_stream[MutableMapping[str, Any]](4)
-    await send.send({"type": "http.response.body", "body": b"frame-one"})
-    await send.send({"type": "http.response.body", "body": b""})
-    await send.send({"type": "http.response.debug"})
-    await send.send({"type": "http.response.body", "body": b"frame-two"})
-    send.close()
+    async with send, receive:
+        await send.send({"type": "http.response.body", "body": b"frame-one"})
+        await send.send({"type": "http.response.body", "body": b""})
+        await send.send({"type": "http.response.debug"})
+        await send.send({"type": "http.response.body", "body": b"frame-two"})
+        send.close()
 
-    dispatch_task = asyncio.create_task(asyncio.sleep(0))
-    start = {
-        "status": 200,
-        "headers": [(b"content-type", b"text/event-stream"), (b"content-length", b"9")],
-    }
+        dispatch_task = asyncio.create_task(asyncio.sleep(0))
+        start = {
+            "status": 200,
+            "headers": [(b"content-type", b"text/event-stream"), (b"content-length", b"9")],
+        }
 
-    response = _streamed_response(start, receive, dispatch_task)
-    frames = [chunk async for chunk in response.streaming_content]  # type: ignore[union-attr]
+        response = _streamed_response(start, receive, dispatch_task)
+        frames = [chunk async for chunk in response.streaming_content]  # type: ignore[union-attr]
 
     assert frames == [b"frame-one", b"frame-two"]
     assert response["Content-Type"] == "text/event-stream"

@@ -124,7 +124,10 @@ run.branch = true
 # Pure launch entrypoints; only a booted server executes them.
 run.omit = [ "example/asgi.py", "example/wsgi.py" ]
 run.parallel = true
-run.source = [ "example/", "src/", "tests/" ]
+run.source = [ "example/", "tests/" ]
+# The package is measured wherever it is imported from; tox tests an installed wheel.
+run.source_pkgs = [ "django_stateless_mcp" ]
+paths.source = [ "src/django_stateless_mcp", "*/site-packages/django_stateless_mcp" ]
 report.exclude_also = [
   "@(abc\\.)?abstractmethod",
   "@overload",
@@ -135,6 +138,6 @@ report.exclude_also = [
   "if typing.TYPE_CHECKING:",
   "raise NotImplementedError",
 ]
-report.fail_under = 50
+report.fail_under = 100
 report.show_missing = true
 report.skip_covered = true

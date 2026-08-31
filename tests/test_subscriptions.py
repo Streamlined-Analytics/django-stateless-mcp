@@ -111,7 +111,7 @@ async def test_unconsumed_stream_close_cancels_dispatch(async_client):
     response.close()
 
     lingering: set[asyncio.Task[object]] = set()
-    for _ in range(50):
+    for _ in range(50):  # pragma: no branch -- exhausting it means the task leaked
         lingering = {task for task in asyncio.all_tasks() - tasks_before if not task.done()}
         if not lingering:
             break

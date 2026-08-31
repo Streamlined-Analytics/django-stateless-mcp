@@ -64,6 +64,8 @@ urlpatterns: list[URLPattern | URLResolver] = [
             user_resolver=resolve_stub_user,
         ),
     ),
+    # No verifier and no resolver: visibility filtering falls back to anonymous.
+    path("filtered-open-mcp/", mcp_view(server_filtered)),
     path(
         "admin-mcp/",
         mcp_view(

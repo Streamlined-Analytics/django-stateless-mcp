@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import functools
 import json
 from typing import Any
 
 import pytest
+from django.conf import settings
 from django.db import connections
-from django.test import Client
+from django.test import Client, RequestFactory
 
 MCP_URL = "/mcp/"
 MCP_HEADERS = {"accept": "application/json, text/event-stream"}
@@ -383,24 +385,46 @@ def test_unauthenticated_endpoint_stays_open(client):
 ELICIT_TOOL = "test_input_required_result_elicitation"
 STATEFUL_TOOL = "test_input_required_result_request_state"
 
+ELICITATION_ONLY: dict[str, Any] = {"elicitation": {}}
+
 STATELESS_META = {
     "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-    "io.modelcontextprotocol/clientCapabilities": {"elicitation": {}},
+    "io.modelcontextprotocol/clientCapabilities": ELICITATION_ONLY,
 }
 
 
-def post_stateless(client: Client, url: str, tool: str, params: dict[str, Any]) -> Any:
-    """POST a spec-2026-07-28 tools/call: routing headers plus _meta envelope."""
+def stateless_meta(capabilities: dict[str, Any]) -> dict[str, Any]:
+    """The _meta envelope declaring the protocol version and client capabilities."""
+    return {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": capabilities,
+    }
+
+
+def post_stateless(
+    client: Client,
+    url: str,
+    tool: str,
+    params: dict[str, Any],
+    *,
+    capabilities: dict[str, Any] | None = None,
+    method: str = "tools/call",
+) -> Any:
+    """POST a spec-2026-07-28 request: routing headers plus _meta envelope."""
     body = {
         "jsonrpc": "2.0",
         "id": 1,
-        "method": "tools/call",
-        "params": {"name": tool, **params, "_meta": STATELESS_META},
+        "method": method,
+        "params": {
+            "name": tool,
+            **params,
+            "_meta": stateless_meta(ELICITATION_ONLY if capabilities is None else capabilities),
+        },
     }
     headers = {
         **MCP_HEADERS,
         "mcp-protocol-version": "2026-07-28",
-        "mcp-method": "tools/call",
+        "mcp-method": method,
         "mcp-name": tool,
     }
     response = client.post(url, data=json.dumps(body), content_type="application/json", headers=headers)
@@ -705,6 +729,48 @@ def test_view_stays_a_coroutine_function():
     assert iscoroutinefunction(mcp_view(server))
 
 
+@pytest.mark.anyio
+async def test_view_stays_async_behind_a_sync_non_atomic_wrapper(monkeypatch):
+    """A plain-def ATOMIC_REQUESTS wrapper must not demote the view to sync.
+
+    Django 6.2 rewrote ``non_atomic_requests`` to return a ``def`` rather
+    than passing the coroutine function through, which silently made the view
+    look synchronous — Django would then run it in a thread and never await
+    it. See ADR-0039.
+    """
+    from asgiref.sync import iscoroutinefunction
+    from django.db import transaction
+
+    from django_stateless_mcp import mcp_view
+    from example.mcp_server import server
+
+    def sync_non_atomic_requests(using=None):
+        def decorator(view):
+            @functools.wraps(view)
+            def wrapper(*args, **kwargs):
+                return view(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    monkeypatch.setattr(transaction, "non_atomic_requests", sync_non_atomic_requests)
+    view = mcp_view(server)
+
+    assert iscoroutinefunction(view)
+
+    request = RequestFactory().post(
+        "/mcp/",
+        data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "ping"}),
+        content_type="application/json",
+        headers={"accept": "application/json, text/event-stream"},
+    )
+    response: Any = await view(request)
+
+    assert response.status_code == 200
+    assert json.loads(response.content)["result"] == {}
+
+
 def test_required_scopes_without_verifier_is_rejected():
     """Scopes without a verifier are equally meaningless and rejected."""
     from django_stateless_mcp import mcp_view
@@ -729,3 +795,87 @@ def test_unresolved_user_falls_back_to_anonymous(client):
 
     result = json.loads(response.content)["result"]
     assert result["structuredContent"] == {"result": ""}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_visible_tool_runs_for_a_permitted_user(client):
+    """The filtered server's locked tool executes once the user holds the perm."""
+    from django.contrib.auth.models import Permission, User
+
+    from example.models import Author
+
+    user = User.objects.create_user("mcp-test-user")
+    user.user_permissions.add(Permission.objects.get(codename="can_update_authors"))
+    author = Author.objects.create(name="Sally Author")
+    response = client.post(
+        FILTERED_URL,
+        data=request_body(
+            "tools/call", {"name": "update_author", "arguments": {"author_id": author.pk, "name": "Sally Renamed"}}
+        ),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["structuredContent"] == {"result": f"author {author.pk} renamed to Sally Renamed"}
+    author.refresh_from_db()
+    assert author.name == "Sally Renamed"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_public_tool_runs_on_the_filtered_server(client):
+    """A tool everyone may see is callable by everyone."""
+    from django.contrib.auth.models import User
+
+    User.objects.create_user("mcp-test-user")
+    response = client.post(
+        FILTERED_URL,
+        data=request_body("tools/call", {"name": "public_ping", "arguments": {}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    assert json.loads(response.content)["result"]["structuredContent"] == {"result": "pong"}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_renaming_an_unknown_author_is_an_error(client):
+    """A permitted user naming a row that does not exist gets a tool error."""
+    from django.contrib.auth.models import Permission, User
+
+    user = User.objects.create_user("mcp-test-user")
+    user.user_permissions.add(Permission.objects.get(codename="can_update_authors"))
+    response = client.post(
+        USER_URL,
+        data=request_body("tools/call", {"name": "update_author", "arguments": {"author_id": 9999, "name": "X"}}),
+        content_type="application/json",
+        headers={**MCP_HEADERS, "authorization": "Bearer good-token"},
+    )
+
+    result = json.loads(response.content)["result"]
+    assert result["isError"] is True
+    assert "no author with id 9999" in result["content"][0]["text"]
+
+
+def test_filter_treats_a_request_without_a_user_as_anonymous(client):
+    """Without auth middleware or a resolver the request carries no user at all.
+
+    ``PermittedToolsFilter`` promises the user is anonymous when no
+    ``user_resolver`` is configured; a middleware stack without
+    ``AuthenticationMiddleware`` is the shape where ``request.user`` is not
+    merely anonymous but absent, and the filter must still fail closed.
+    """
+    from django.test import override_settings
+
+    unauthenticated = [m for m in settings.MIDDLEWARE if "AuthenticationMiddleware" not in m]
+    with override_settings(MIDDLEWARE=unauthenticated):
+        response = client.post(
+            "/filtered-open-mcp/",
+            data=request_body("tools/list"),
+            content_type="application/json",
+            headers=MCP_HEADERS,
+        )
+
+    names = _list_names(response)
+    assert "public_ping" in names
+    assert "update_author" not in names

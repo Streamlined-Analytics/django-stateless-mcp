@@ -74,7 +74,7 @@ class PermittedToolsFilter:
             return result
 
         user = _request_user(ctx)
-        tools = result["tools"] if isinstance(result, dict) else getattr(result, "tools", None)
+        tools = result.get("tools") if isinstance(result, dict) else getattr(result, "tools", None)
         if tools is None:
             return result
         permitted = await sync_to_async(self._permitted)(user, list(tools))

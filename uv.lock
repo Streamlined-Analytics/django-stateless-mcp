@@ -13,6 +13,9 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
+[options.exclude-newer-package]
+django-probe = "2026-09-02T11:47:34Z"
+
 [[package]]
 name = "annotated-types"
 version = "0.7.0"
@@ -588,6 +591,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-probe"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/38/a628e1b5997733b032ee015b886c8b3ce728b55414032479eccfc3843eca/django_probe-0.2.0.tar.gz", hash = "sha256:b440381690cc2331c5d55673a9429a0d210f1791e3ee9742a1e3c957a795b24d", size = 13110, upload-time = "2026-09-02T11:47:34.07Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/70/df932d66bd7dc0dbe4531923260406959f655315d7e43bbc91d783453d0d/django_probe-0.2.0-py3-none-any.whl", hash = "sha256:6bf6265072e52478c7a19281f2ebfdbeff749eec6cebb42e2b4439c0d4b22601", size = 17992, upload-time = "2026-09-02T11:47:33.156Z" },
+]
+
+[[package]]
 name = "django-stateless-mcp"
 version = "0.1.11"
 source = { editable = "." }
@@ -605,6 +620,7 @@ structlog = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "django-probe" },
     { name = "django-stubs", version = "6.0.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "django-stubs", version = "6.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "django-stubs-ext", version = "6.0.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -624,6 +640,7 @@ docs = [
     { name = "mkdocstrings-python" },
 ]
 lint = [
+    { name = "django-probe" },
     { name = "pre-commit" },
     { name = "ruff" },
 ]
@@ -654,6 +671,7 @@ provides-extras = ["structlog"]
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage" },
+    { name = "django-probe" },
     { name = "django-stubs" },
     { name = "django-stubs-ext" },
     { name = "gunicorn" },
@@ -671,6 +689,7 @@ docs = [
     { name = "mkdocstrings-python" },
 ]
 lint = [
+    { name = "django-probe" },
     { name = "pre-commit" },
     { name = "ruff" },
 ]

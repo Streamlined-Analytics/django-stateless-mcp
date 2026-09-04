@@ -16,6 +16,7 @@ The domain is a deliberately familiar one — books and authors, in the spirit o
 - `update_author` gates on a custom permission you toggle live in the Django admin (`/admin/`, `admin`/`admin`) while MCP Inspector re-lists the tools.
 - `slow_book_report` blocks for 30 seconds — a slow tool occupies one worker thread, never the event loop or the fleet.
 - `worker_pid` shows different processes answering successive calls.
+- `browse_books` carries an MCP App — a Django template rendered inside the chat by clients that support apps, whose retire button reaches the app-only `retire_book`.
 
 That fleet is the point: an elicitation started on one worker resumes on another, because the encrypted `requestState` is keyed from `SECRET_KEY` rather than the SDK's per-process default.
 You can stop the server mid-elicitation, start it again, and the resume still completes — no process ever held the flow.

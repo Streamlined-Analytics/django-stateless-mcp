@@ -1,0 +1,42 @@
+name: Django Probe
+
+on:
+  schedule:
+    # Monthly, at a minute and hour of our own to spread load on djangoprobe.org.
+    - cron: "17 4 3 * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print the payload instead of sending it
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - .github/workflows/django-probe.yml
+
+permissions: {}
+
+jobs:
+  submit:
+    name: Share Django usage counts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+
+      - name: Scan and submit
+        # A pull request only proves the job runs; nothing leaves the runner.
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+          DRY_RUN: ${{ github.event_name == 'pull_request' || inputs.dry_run == true }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            uv run --locked django-probe submit . --dry-run
+          else
+            uv run --locked django-probe submit .
+          fi

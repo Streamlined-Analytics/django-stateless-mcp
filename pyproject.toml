@@ -64,6 +64,7 @@ docs = [
   "mkdocstrings-python",
 ]
 lint = [
+  "django-probe",
   "pre-commit",
   "ruff",
 ]
@@ -77,6 +78,8 @@ typecheck = [
 required-version = ">=0.9.17"
 default-groups = [ "dev" ]
 exclude-newer = "1 week"
+# django-probe 0.2.0 (usage-sharing scan, requested 04-09-2026); expires 09-09-2026
+exclude-newer-package = { django-probe = "2026-09-02T11:47:34Z" }
 package = true
 
 [tool.ruff]

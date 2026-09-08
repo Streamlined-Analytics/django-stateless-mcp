@@ -96,6 +96,14 @@ That is the whole integration. The endpoint runs under both WSGI and ASGI.
 Tool registration, elicitation, resources and prompts are the MCP SDK's own API;
 this package is the Django layer around it.
 
+## What it is not
+
+It is **not an agent framework**. Pydantic AI and LlamaIndex build the AI that
+calls tools; this package makes your Django app one of the things that AI can
+call. Your code never calls an LLM and holds no model API key. See
+[How this compares](https://django-stateless-mcp.readthedocs.io/en/stable/how-this-compares/)
+for the distinction and for the packages that *are* alternatives.
+
 ## Supported versions
 
 * Python 3.10–3.14 (3.10 and 3.11 with Django 5.2 LTS only, matching Django's own support)

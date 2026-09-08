@@ -33,12 +33,18 @@ the 2026-07-28 spec solved, why elicitation used to break on a multi-worker
 deployment, and why that change is what makes a good Django MCP package
 possible. Most of the API follows from it.
 
+- [How this compares](how-this-compares.md) — why agent frameworks such as
+  Pydantic AI and LlamaIndex are not alternatives, and which packages are
 - [Installation](installation.md) — installing the package
 - [Usage](usage.md) — using it in a Django project
 - [Try it live](example.md) — the runnable example project
 - [API reference](reference.md) — generated from the source
 
 ## What this package is not
+
+It is **not an agent framework**. Pydantic AI and LlamaIndex build the AI that
+calls tools; this package makes your Django app one of the things it can call.
+Your code never calls an LLM. See [How this compares](how-this-compares.md).
 
 It deliberately does **not** expose your models or ORM to an agent, and does not
 convert DRF viewsets into tools. Those are opinionated product surface with a

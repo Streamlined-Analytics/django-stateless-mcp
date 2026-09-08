@@ -32,8 +32,12 @@ Your code never calls an LLM.
 There is no API key in `settings.py` and no token bill.
 The AI is someone else's: a user's Claude Code, a company's ChatGPT deployment,
 or an agent a third party wrote with Pydantic AI.
-Your job is to expose your business logic as tools under your own auth and
-permissions, and that external agent decides when to call them.
+Your job is to expose a user's data within your app, and the business logic
+that reads and updates it, as tools under your own auth and permissions.
+The user's AI then decides how to interact with your system: which tools to
+call, in what order, and to what end.
+That is the reverse of an agent framework, where you decide how the AI
+interacts with your system and you foot the bill for every call it makes.
 You are not building an AI; you are making your Django app reachable by one.
 
 The Django analogy holds well.

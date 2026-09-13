@@ -26,6 +26,7 @@ from django_stateless_mcp import (
     django_request,
     request_state_security,
 )
+from example.book_shelf import book_shelf
 from example.models import Author, Book
 
 # Read at call time inside slow_book_report, so tests monkeypatch it to zero.
@@ -49,6 +50,8 @@ server = MCPServer(
     request_state_security=request_state_security(),
     middleware=[StructlogRequestLogger()],
     subscriptions=subscription_bus,
+    # The MCP Apps extension: tools bound to a ui:// resource. See example/book_shelf.py.
+    extensions=[book_shelf],
 )
 
 # A server that filters tool visibility by permission.

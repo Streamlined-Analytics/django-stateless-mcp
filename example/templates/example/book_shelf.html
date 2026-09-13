@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Book shelf</title>
+<style>
+  body { margin: 0; padding: 1rem; font: 15px/1.4 system-ui, sans-serif; color: #1f2937; background: #fff; }
+  h1 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+  ul { margin: 0.5rem 0 0; padding: 0; list-style: none; }
+  li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.4rem 0; border-top: 1px solid #e5e7eb; }
+  button { padding: 0.25rem 0.75rem; border: 1px solid #b91c1c; border-radius: 4px; background: #fff; color: #b91c1c; cursor: pointer; }
+  button:hover { background: #fef2f2; }
+  #status { margin: 0; color: #6b7280; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Book shelf</h1>
+  <p id="status">Connecting to the host…</p>
+  <ul id="shelf"></ul>
+</main>
+<script>
+(function () {
+  const RETIRE_TOOL = "{{ retire_tool|escapejs }}";
+  const BROWSE_TOOL = "{{ browse_tool|escapejs }}";
+  const pending = new Map();
+  let nextId = 1;
+
+  function send(message) {
+    window.parent.postMessage(message, "*");
+  }
+
+  function request(method, params) {
+    const id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending.set(id, { resolve: resolve, reject: reject });
+      send({ jsonrpc: "2.0", id: id, method: method, params: params });
+    });
+  }
+
+  function notify(method, params) {
+    send({ jsonrpc: "2.0", method: method, params: params });
+  }
+
+  function setStatus(text) {
+    document.getElementById("status").textContent = text;
+  }
+
+  function handleMessage(event) {
+    const message = event.data;
+    if (!message || message.jsonrpc !== "2.0") {
+      return;
+    }
+    if (message.id !== undefined && pending.has(message.id)) {
+      const waiter = pending.get(message.id);
+      pending.delete(message.id);
+      if (message.error) {
+        waiter.reject(new Error(message.error.message));
+      } else {
+        waiter.resolve(message.result);
+      }
+      return;
+    }
+    if (message.method === "ui/notifications/tool-result") {
+      renderShelf(message.params);
+    }
+  }
+
+  function renderShelf(result) {
+    const shelf = document.getElementById("shelf");
+    shelf.replaceChildren();
+    const books = (result.structuredContent && result.structuredContent.books) || [];
+    setStatus(books.length ? books.length + " book(s) on the shelf" : "The shelf is empty.");
+    books.forEach(function (book) {
+      const item = document.createElement("li");
+      item.append(book.title + " by " + book.author);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Retire";
+      button.addEventListener("click", function () { retireBook(book.id); });
+      item.append(button);
+      shelf.append(item);
+    });
+  }
+
+  async function retireBook(bookId) {
+    setStatus("Retiring…");
+    try {
+      const outcome = await request("tools/call", { name: RETIRE_TOOL, arguments: { book_id: bookId } });
+      if (outcome.isError) {
+        setStatus(outcome.content.map(function (block) { return block.text; }).join(" "));
+        return;
+      }
+      renderShelf(await request("tools/call", { name: BROWSE_TOOL, arguments: {} }));
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
+  async function connect() {
+    try {
+      await request("ui/initialize", {
+        appInfo: { name: "book-shelf", version: "0.0.1" },
+        appCapabilities: {},
+        protocolVersion: "2026-01-26",
+      });
+      notify("ui/notifications/initialized", {});
+      setStatus("Waiting for the shelf…");
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
+  window.addEventListener("message", handleMessage);
+  connect();
+})();
+</script>
+</body>
+</html>

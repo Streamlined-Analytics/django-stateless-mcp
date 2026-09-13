@@ -37,6 +37,10 @@ sticky routing, and no dedicated single-process service.
 * **Kick off a long job, keep chatting, and the result comes back when it's
   ready** — see the
   [long-running jobs recipe](https://django-stateless-mcp.readthedocs.io/en/stable/recipes/long-running-jobs/).
+* **Tools can render a page inside the chat** — a Django template the client
+  shows in a sandboxed iframe, with buttons that call your tools; the route to
+  a confirmation on Claude.ai and ChatGPT, which have no elicitation. See the
+  [MCP Apps recipe](https://django-stateless-mcp.readthedocs.io/en/stable/recipes/mcp-apps/).
 * **Your authentication and permissions work inside tools** — bearer auth
   resolves to a real Django user, so `user.has_perm(...)` just works, and
   `PermittedToolsFilter` hides tools a user may not use from `tools/list`.

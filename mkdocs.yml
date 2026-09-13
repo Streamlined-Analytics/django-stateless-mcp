@@ -55,3 +55,4 @@ nav:
       - Elicitation — forms & confirmations: recipes/elicitation-forms-and-confirmations.md
       - OAuth & permissions: recipes/oauth-and-permissions.md
       - Long-running jobs: recipes/long-running-jobs.md
+      - MCP Apps — a UI inside the chat: recipes/mcp-apps.md

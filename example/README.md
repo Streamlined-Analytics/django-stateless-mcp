@@ -258,3 +258,4 @@ That lottery is the live demonstration of why a real fleet wires an external `Su
 - `db_thread_info` — which worker thread served the call and whether it still holds a DB connection; call `count_books` then this to watch connection hygiene working.
 - `public_ping` vs `update_author` on `/filtered-mcp/` — tool visibility filtered per user.
 - `test_input_required_result_*` — the SEP-2322 elicitation/sampling/roots fixtures the conformance suite also runs against.
+- `browse_books`, `retire_book` — the MCP App: `resources/read` on `ui://example/book-shelf.html` returns the Django-rendered shelf, and a host that renders apps shows it with a retire button per book (`retire_book` is app-only and needs `example.delete_book`).

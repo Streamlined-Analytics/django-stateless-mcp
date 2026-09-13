@@ -19,6 +19,10 @@ An MCP endpoint becomes an ordinary Django view: no sessions, no SSE, no sticky 
   [elicitation recipe](recipes/elicitation-forms-and-confirmations.md).
 - **Kick off a long job, keep chatting, and the result comes back when it's
   ready** — see the [long-running jobs recipe](recipes/long-running-jobs.md).
+- **Tools can render a page inside the chat** — a Django template the
+  client shows in a sandboxed iframe, with buttons that call your tools; the
+  route to a confirmation on Claude.ai and ChatGPT, which have no elicitation —
+  see the [MCP Apps recipe](recipes/mcp-apps.md).
 - **Your authentication and permissions work inside tools** — bearer auth
   resolves to a real Django user, so `user.has_perm(...)` just works.
 - **You can see what your MCP is doing** — optional structlog middleware logs

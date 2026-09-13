@@ -218,7 +218,7 @@ async def test_consecutive_requests_share_no_state(async_client):
     )
 
     assert json.loads(first.content)["result"]["structuredContent"] == {"result": "django"}
-    assert json.loads(second.content)["result"]["tools"][0]["name"] == "list_books"
+    assert "list_books" in {tool["name"] for tool in json.loads(second.content)["result"]["tools"]}
 
 
 def test_autodiscovery_imported_the_app_mcp_module(client):

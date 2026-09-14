@@ -29,6 +29,11 @@ jobs:
 
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
 
+      - name: Sync the locked environment and install django-probe
+        run: |
+          uv sync --locked
+          uv pip install django-probe==0.2.0  # same interpreter, so it reads the real package versions
+
       - name: Scan and submit
         # A pull request only proves the job runs; nothing leaves the runner.
         env:
@@ -36,7 +41,7 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'pull_request' || inputs.dry_run == true }}
         run: |
           if [ "$DRY_RUN" = "true" ]; then
-            uv run --locked django-probe submit . --dry-run
+            uv run --no-sync django-probe submit . --dry-run
           else
-            uv run --locked django-probe submit .
+            uv run --no-sync django-probe submit .
           fi

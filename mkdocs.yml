@@ -54,4 +54,5 @@ nav:
   - Recipes:
       - Elicitation — forms & confirmations: recipes/elicitation-forms-and-confirmations.md
       - OAuth & permissions: recipes/oauth-and-permissions.md
+      - OAuth with django-allauth: recipes/oauth-with-django-allauth.md
       - Long-running jobs: recipes/long-running-jobs.md
